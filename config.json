@@ -1,0 +1,23 @@
+{
+  "input_dir": "input_clips",
+  "output_dir": "output",
+  "tts_cache_dir": "tts_cache",
+  "ffmpeg_path": "C:\\ffmpeg-8.1.1-essentials_build\\bin\\ffmpeg.exe",
+  "ffprobe_path": "C:\\ffmpeg-8.1.1-essentials_build\\bin\\ffprobe.exe",
+  "urls": [
+    "https://www.youtube.com/shorts/C0eQO-IkhQU",
+    "https://www.youtube.com/shorts/DyOknSzZeq0"
+  ],
+  "ranking": {
+    "title": "Top 5 Moments",
+    "count": 5
+  },
+  "compose": {
+    "enabled": true,
+    "output_name": "final_short.mp4"
+  },
+  "video": {
+    "resolution": [1080, 1920],
+    "fps": 30
+  }
+}

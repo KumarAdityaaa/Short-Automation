@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shorts Ranking Studio</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div id="homeScreen" class="page" style="display:grid; grid-template-columns: 380px 1fr;">
+    <div class="left-panel">
+      <div class="panel-card">
+        <h1>Shorts Ranking Studio</h1>
+        <p class="subtext">Create and manage local shorts projects.</p>
+        <button id="newProjectBtn" class="btn primary" type="button">Create New Short</button>
+      </div>
+
+      <div class="panel-card">
+        <h2>Your Projects</h2>
+        <div id="projectsContainer" class="history-list"></div>
+        <p id="noProjectsText" class="subtext">No projects created yet.</p>
+      </div>
+    </div>
+
+    <div class="right-panel">
+      <div class="panel-card" style="width:100%; max-width:900px;">
+        <h2>Project Library</h2>
+        <p class="subtext">
+          Each project gets its own folder in <code>projects/ProjectName/</code> with its own clips, output, and history.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div id="editorScreen" class="page" style="display:none;">
+    <div class="left-panel">
+      <div class="panel-card">
+        <button id="backBtn" class="btn" type="button">← Back to Projects</button>
+        <h1 id="editorProjectName" style="margin-top:16px;">Project</h1>
+        <p class="subtext">Shared title styling, per-clip rank styling.</p>
+
+        <div class="control-form">
+          <label for="background_color">Background Color</label>
+          <input id="background_color" type="color" />
+
+          <label for="urls">Clip URLs (one per line)</label>
+          <textarea id="urls" rows="6"></textarea>
+
+          <button id="saveBtn" class="btn primary" type="button">Save Project State</button>
+          <button id="downloadBtn" class="btn primary" type="button">Download Clips From URLs</button>
+          <button id="loadClipsBtn" class="btn primary" type="button">Refresh Clip List</button>
+          <button id="generateBtn" class="btn primary" type="button">Generate Final MP4</button>
+          <p id="generateStatus" class="subtext"></p>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <h2>Title Word Blocks</h2>
+        <div id="titleBlocksContainer" class="history-list"></div>
+        <button id="addTitleBlockBtn" class="btn primary" type="button">Add Word Block</button>
+      </div>
+
+      <div class="panel-card">
+        <h2>Selected Clip Rank Style</h2>
+        <div class="control-form">
+          <label for="rank_text">Rank Text</label>
+          <input id="rank_text" type="text" />
+
+          <label for="rank_font_size">Rank Text Size</label>
+          <input id="rank_font_size" type="number" min="12" max="160" step="1" />
+
+          <label for="rank_color">Rank Color</label>
+          <input id="rank_color" type="color" />
+
+          <label for="rank_stroke_color">Rank Stroke Color</label>
+          <input id="rank_stroke_color" type="color" />
+
+          <label for="rank_stroke_width">Rank Stroke Width</label>
+          <input id="rank_stroke_width" type="number" min="0" max="12" step="1" />
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <h2>Clip Order</h2>
+        <p class="subtext">Select a clip to preview and edit only that clip’s rank style.</p>
+        <div id="clipsContainer" class="history-list"></div>
+        <p id="noClipsText" class="subtext">No clips loaded yet.</p>
+      </div>
+
+      <div class="panel-card">
+        <h2>Project History</h2>
+        <div id="historyContainer" class="history-list"></div>
+        <p id="noHistoryText" class="subtext">No generated outputs for this project yet.</p>
+      </div>
+    </div>
+
+    <div class="right-panel">
+      <div class="preview-shell">
+        <div id="previewCanvas" class="preview-video" style="position:relative; overflow:hidden; background:#000;">
+          <div id="titleOverlay" style="position:absolute; top:18px; left:16px; right:16px; z-index:20; text-align:center;"></div>
+
+          <video id="previewPlayer" playsinline controls muted
+                 style="width:100%; height:100%; object-fit:cover; background:black;"></video>
+
+          <div id="previewRank"
+               style="position:absolute; left:18px; top:160px; font-size:58px; font-weight:900; z-index:25; line-height:1;">
+            1.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const FONT_OPTIONS = [
+      "Impact, Arial Black, sans-serif",
+      "Arial, sans-serif",
+      "Verdana, sans-serif",
+      "Tahoma, sans-serif",
+      "Trebuchet MS, sans-serif",
+      "Georgia, serif",
+      "Times New Roman, serif",
+      "Courier New, monospace"
+    ];
+
+    const state = {
+      currentProjectName: null,
+      title_blocks: [],
+      background_color: "#000000",
+      urls: [],
+      clips: [],
+      history: [],
+      projects: [],
+      selectedPreviewIndex: 0
+    };
+
+    const els = {
+      homeScreen: document.getElementById("homeScreen"),
+      editorScreen: document.getElementById("editorScreen"),
+      newProjectBtn: document.getElementById("newProjectBtn"),
+      projectsContainer: document.getElementById("projectsContainer"),
+      noProjectsText: document.getElementById("noProjectsText"),
+      backBtn: document.getElementById("backBtn"),
+      editorProjectName: document.getElementById("editorProjectName"),
+      backgroundColor: document.getElementById("background_color"),
+      urls: document.getElementById("urls"),
+      saveBtn: document.getElementById("saveBtn"),
+      downloadBtn: document.getElementById("downloadBtn"),
+      loadClipsBtn: document.getElementById("loadClipsBtn"),
+      generateBtn: document.getElementById("generateBtn"),
+      generateStatus: document.getElementById("generateStatus"),
+      titleBlocksContainer: document.getElementById("titleBlocksContainer"),
+      addTitleBlockBtn: document.getElementById("addTitleBlockBtn"),
+      rankText: document.getElementById("rank_text"),
+      rankFontSize: document.getElementById("rank_font_size"),
+      rankColor: document.getElementById("rank_color"),
+      rankStrokeColor: document.getElementById("rank_stroke_color"),
+      rankStrokeWidth: document.getElementById("rank_stroke_width"),
+      clipsContainer: document.getElementById("clipsContainer"),
+      noClipsText: document.getElementById("noClipsText"),
+      historyContainer: document.getElementById("historyContainer"),
+      noHistoryText: document.getElementById("noHistoryText"),
+      previewCanvas: document.getElementById("previewCanvas"),
+      titleOverlay: document.getElementById("titleOverlay"),
+      previewRank: document.getElementById("previewRank"),
+      previewPlayer: document.getElementById("previewPlayer")
+    };
+
+    function getSelectedClip() {
+      if (!state.clips.length) return null;
+      if (state.selectedPreviewIndex < 0 || state.selectedPreviewIndex >= state.clips.length) {
+        state.selectedPreviewIndex = 0;
+      }
+      return state.clips[state.selectedPreviewIndex];
+    }
+
+    function showHome() {
+      els.homeScreen.style.display = "grid";
+      els.editorScreen.style.display = "none";
+    }
+
+    function showEditor() {
+      els.homeScreen.style.display = "none";
+      els.editorScreen.style.display = "grid";
+    }
+
+    function ensureDefaultTitleBlocks() {
+      if (!Array.isArray(state.title_blocks) || !state.title_blocks.length) {
+        state.title_blocks = [
+          { text: "Ranking", font_family: FONT_OPTIONS[0], font_size: 40, color: "#ffffff", stroke_color: "#000000", stroke_width: 2 },
+          { text: "Funniest", font_family: FONT_OPTIONS[0], font_size: 40, color: "#ff2b2b", stroke_color: "#000000", stroke_width: 2 },
+          { text: "Instant Karma", font_family: FONT_OPTIONS[0], font_size: 40, color: "#ffe600", stroke_color: "#000000", stroke_width: 2 },
+          { text: "Moments", font_family: FONT_OPTIONS[0], font_size: 40, color: "#ffffff", stroke_color: "#000000", stroke_width: 2 }
+        ];
+      }
+    }
+
+    function readStateFromInputs() {
+      state.background_color = els.backgroundColor.value || "#000000";
+      state.urls = els.urls.value.split("\n").map(v => v.trim()).filter(Boolean);
+
+      const clip = getSelectedClip();
+      if (clip) {
+        clip.rank_text = els.rankText.value || clip.rank_text || "1.";
+        clip.rank_font_size = parseInt(els.rankFontSize.value || "58", 10);
+        clip.rank_color = els.rankColor.value || "#ffe600";
+        clip.rank_stroke_color = els.rankStrokeColor.value || "#000000";
+        clip.rank_stroke_width = parseInt(els.rankStrokeWidth.value || "2", 10);
+      }
+    }
+
+    function syncInputsFromState() {
+      ensureDefaultTitleBlocks();
+
+      els.editorProjectName.textContent = state.currentProjectName || "Project";
+      els.backgroundColor.value = state.background_color || "#000000";
+      els.urls.value = (state.urls || []).join("\n");
+
+      renderProjects();
+      renderTitleBlocks();
+      renderClips();
+      syncSelectedClipInputs();
+      renderHistory();
+      renderPreview();
+    }
+
+    function syncSelectedClipInputs() {
+      const clip = getSelectedClip();
+
+      if (!clip) {
+        els.rankText.value = "";
+        els.rankFontSize.value = "58";
+        els.rankColor.value = "#ffe600";
+        els.rankStrokeColor.value = "#000000";
+        els.rankStrokeWidth.value = "2";
+        return;
+      }
+
+      els.rankText.value = clip.rank_text || "";
+      els.rankFontSize.value = clip.rank_font_size ?? 58;
+      els.rankColor.value = clip.rank_color || "#ffe600";
+      els.rankStrokeColor.value = clip.rank_stroke_color || "#000000";
+      els.rankStrokeWidth.value = clip.rank_stroke_width ?? 2;
+    }
+
+    function renderProjects() {
+      els.projectsContainer.innerHTML = "";
+
+      if (!state.projects || state.projects.length === 0) {
+        els.noProjectsText.style.display = "block";
+        return;
+      }
+
+      els.noProjectsText.style.display = "none";
+
+      state.projects.forEach(project => {
+        const row = document.createElement("div");
+        row.className = "history-item";
+
+        const left = document.createElement("div");
+        left.innerHTML = `
+          <div class="history-title">${project.project_name}</div>
+          <div class="history-meta">${project.path}</div>
+        `;
+
+        const right = document.createElement("div");
+        right.style.display = "flex";
+        right.style.gap = "8px";
+        right.style.flexWrap = "wrap";
+
+        const openBtn = document.createElement("button");
+        openBtn.className = "btn primary";
+        openBtn.textContent = "Open";
+        openBtn.onclick = () => openProject(project.project_name);
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.className = "btn danger";
+        deleteBtn.textContent = "Delete";
+        deleteBtn.onclick = () => removeProject(project.project_name);
+
+        right.appendChild(openBtn);
+        right.appendChild(deleteBtn);
+
+        row.appendChild(left);
+        row.appendChild(right);
+        els.projectsContainer.appendChild(row);
+      });
+    }
+
+    function renderTitleBlocks() {
+      els.titleBlocksContainer.innerHTML = "";
+
+      state.title_blocks.forEach((block, index) => {
+        const item = document.createElement("div");
+        item.className = "history-item";
+        item.style.display = "block";
+
+        const title = document.createElement("div");
+        title.className = "history-title";
+        title.textContent = `Word Block ${index + 1}`;
+
+        const form = document.createElement("div");
+        form.className = "control-form";
+        form.style.marginTop = "10px";
+
+        const textInput = document.createElement("input");
+        textInput.type = "text";
+        textInput.value = block.text || "";
+        textInput.placeholder = "Word or phrase";
+        textInput.oninput = (e) => {
+          state.title_blocks[index].text = e.target.value;
+          renderPreview();
+        };
+
+        const fontSelect = document.createElement("select");
+        FONT_OPTIONS.forEach(font => {
+          const option = document.createElement("option");
+          option.value = font;
+          option.textContent = font.split(",")[0];
+          if (font === block.font_family) option.selected = true;
+          fontSelect.appendChild(option);
+        });
+        fontSelect.onchange = (e) => {
+          state.title_blocks[index].font_family = e.target.value;
+          renderPreview();
+        };
+
+        const sizeInput = document.createElement("input");
+        sizeInput.type = "number";
+        sizeInput.min = "12";
+        sizeInput.max = "120";
+        sizeInput.step = "1";
+        sizeInput.value = block.font_size ?? 40;
+        sizeInput.oninput = (e) => {
+          state.title_blocks[index].font_size = parseInt(e.target.value || "40", 10);
+          renderPreview();
+        };
+
+        const colorInput = document.createElement("input");
+        colorInput.type = "color";
+        colorInput.value = block.color || "#ffffff";
+        colorInput.oninput = (e) => {
+          state.title_blocks[index].color = e.target.value;
+          renderPreview();
+        };
+
+        const strokeColorInput = document.createElement("input");
+        strokeColorInput.type = "color";
+        strokeColorInput.value = block.stroke_color || "#000000";
+        strokeColorInput.oninput = (e) => {
+          state.title_blocks[index].stroke_color = e.target.value;
+          renderPreview();
+        };
+
+        const strokeWidthInput = document.createElement("input");
+        strokeWidthInput.type = "number";
+        strokeWidthInput.min = "0";
+        strokeWidthInput.max = "12";
+        strokeWidthInput.step = "1";
+        strokeWidthInput.value = block.stroke_width ?? 2;
+        strokeWidthInput.oninput = (e) => {
+          state.title_blocks[index].stroke_width = parseInt(e.target.value || "0", 10);
+          renderPreview();
+        };
+
+        const removeBtn = document.createElement("button");
+        removeBtn.className = "btn danger";
+        removeBtn.type = "button";
+        removeBtn.textContent = "Remove";
+        removeBtn.onclick = () => {
+          state.title_blocks.splice(index, 1);
+          if (!state.title_blocks.length) {
+            ensureDefaultTitleBlocks();
+          }
+          renderTitleBlocks();
+          renderPreview();
+        };
+
+        form.appendChild(makeLabeled("Text", textInput));
+        form.appendChild(makeLabeled("Font", fontSelect));
+        form.appendChild(makeLabeled("Text Size", sizeInput));
+        form.appendChild(makeLabeled("Color", colorInput));
+        form.appendChild(makeLabeled("Stroke Color", strokeColorInput));
+        form.appendChild(makeLabeled("Stroke Width", strokeWidthInput));
+        form.appendChild(removeBtn);
+
+        item.appendChild(title);
+        item.appendChild(form);
+        els.titleBlocksContainer.appendChild(item);
+      });
+    }
+
+    function makeLabeled(labelText, inputNode) {
+      const wrapper = document.createElement("div");
+      const label = document.createElement("label");
+      label.textContent = labelText;
+      wrapper.appendChild(label);
+      wrapper.appendChild(inputNode);
+      return wrapper;
+    }
+
+    function renderClips() {
+      els.clipsContainer.innerHTML = "";
+
+      if (!state.clips || state.clips.length === 0) {
+        els.noClipsText.style.display = "block";
+        return;
+      }
+
+      els.noClipsText.style.display = "none";
+
+      state.clips.forEach((clip, index) => {
+        const item = document.createElement("div");
+        item.className = "history-item";
+        item.style.cursor = "pointer";
+
+        if (index === state.selectedPreviewIndex) {
+          item.style.outline = "2px solid #4c7dff";
+        }
+
+        item.onclick = () => {
+          state.selectedPreviewIndex = index;
+          renderClips();
+          syncSelectedClipInputs();
+          renderPreview();
+        };
+
+        const left = document.createElement("div");
+        left.innerHTML = `
+          <div class="history-title">${clip.name}</div>
+          <div class="history-meta">${clip.url || ""}</div>
+          <div class="history-meta">Rank text: ${clip.rank_text || ""}</div>
+        `;
+
+        const right = document.createElement("div");
+        right.style.display = "flex";
+        right.style.gap = "8px";
+        right.style.flexWrap = "wrap";
+
+        const upBtn = document.createElement("button");
+        upBtn.className = "btn primary";
+        upBtn.textContent = "↑";
+        upBtn.onclick = async (e) => {
+          e.stopPropagation();
+          await moveClip(index, "up");
+        };
+
+        const downBtn = document.createElement("button");
+        downBtn.className = "btn primary";
+        downBtn.textContent = "↓";
+        downBtn.onclick = async (e) => {
+          e.stopPropagation();
+          await moveClip(index, "down");
+        };
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.className = "btn danger";
+        deleteBtn.textContent = "Delete";
+        deleteBtn.onclick = async (e) => {
+          e.stopPropagation();
+          await deleteClip(index);
+        };
+
+        right.appendChild(upBtn);
+        right.appendChild(downBtn);
+        right.appendChild(deleteBtn);
+
+        item.appendChild(left);
+        item.appendChild(right);
+        els.clipsContainer.appendChild(item);
+      });
+    }
+
+    function renderHistory() {
+      els.historyContainer.innerHTML = "";
+
+      if (!state.history || state.history.length === 0) {
+        els.noHistoryText.style.display = "block";
+        return;
+      }
+
+      els.noHistoryText.style.display = "none";
+
+      state.history.forEach((item, index) => {
+        const row = document.createElement("div");
+        row.className = "history-item";
+
+        const left = document.createElement("div");
+        left.innerHTML = `
+          <div class="history-title">${item.title || "Generated Output"}</div>
+          <div class="history-meta">${item.created_at || ""} • ${item.status || ""}</div>
+          <div class="history-meta">${item.file_path || ""}</div>
+        `;
+
+        const right = document.createElement("div");
+        const deleteBtn = document.createElement("button");
+        deleteBtn.className = "btn danger";
+        deleteBtn.textContent = "Delete";
+        deleteBtn.onclick = () => deleteProjectHistory(index);
+        right.appendChild(deleteBtn);
+
+        row.appendChild(left);
+        row.appendChild(right);
+        els.historyContainer.appendChild(row);
+      });
+    }
+
+    function renderPreview() {
+      els.previewCanvas.style.background = state.background_color || "#000000";
+      els.titleOverlay.innerHTML = "";
+
+      const topRow = document.createElement("div");
+      topRow.style.display = "flex";
+      topRow.style.justifyContent = "center";
+      topRow.style.gap = "8px";
+      topRow.style.flexWrap = "wrap";
+
+      const bottomRow = document.createElement("div");
+      bottomRow.style.display = "flex";
+      bottomRow.style.justifyContent = "center";
+      bottomRow.style.gap = "8px";
+      bottomRow.style.flexWrap = "wrap";
+      bottomRow.style.marginTop = "4px";
+
+      state.title_blocks.forEach((block, index) => {
+        const span = document.createElement("span");
+        span.textContent = block.text || "Word";
+        span.style.fontFamily = block.font_family || FONT_OPTIONS[0];
+        span.style.color = block.color || "#ffffff";
+        span.style.fontWeight = "900";
+        span.style.fontSize = `${block.font_size ?? 40}px`;
+        span.style.lineHeight = "1";
+        span.style.webkitTextStroke = `${block.stroke_width ?? 2}px ${block.stroke_color || "#000000"}`;
+        span.style.textShadow = "0 2px 6px rgba(0,0,0,0.35)";
+
+        if (index < 2) {
+          topRow.appendChild(span);
+        } else {
+          bottomRow.appendChild(span);
+        }
+      });
+
+      els.titleOverlay.appendChild(topRow);
+      if (bottomRow.children.length) {
+        els.titleOverlay.appendChild(bottomRow);
+      }
+
+      const clip = getSelectedClip();
+
+      if (!clip) {
+        els.previewRank.textContent = "1.";
+        els.previewRank.style.fontSize = "58px";
+        els.previewRank.style.color = "#ffe600";
+        els.previewRank.style.webkitTextStroke = "2px #000000";
+        els.previewPlayer.removeAttribute("src");
+        els.previewPlayer.load();
+        return;
+      }
+
+      els.previewRank.textContent = clip.rank_text || "1.";
+      els.previewRank.style.fontSize = `${clip.rank_font_size ?? 58}px`;
+      els.previewRank.style.color = clip.rank_color || "#ffe600";
+      els.previewRank.style.webkitTextStroke = `${clip.rank_stroke_width ?? 2}px ${clip.rank_stroke_color || "#000000"}`;
+
+      if (clip.preview_url) {
+        const currentSrc = els.previewPlayer.getAttribute("src");
+        if (currentSrc !== clip.preview_url) {
+          els.previewPlayer.src = clip.preview_url;
+          els.previewPlayer.load();
+        }
+      } else {
+        els.previewPlayer.removeAttribute("src");
+        els.previewPlayer.load();
+      }
+    }
+
+    async function fetchProjects() {
+      const res = await fetch("/api/projects");
+      const data = await res.json();
+      state.projects = data.projects || [];
+      renderProjects();
+    }
+
+    async function createProject() {
+      const projectName = prompt("Enter new project name:");
+      if (!projectName || !projectName.trim()) {
+        return;
+      }
+
+      const res = await fetch("/api/projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ project_name: projectName.trim() })
+      });
+
+      const data = await res.json();
+
+      if (!data.ok) {
+        alert(data.error || "Failed to create project");
+        return;
+      }
+
+      state.projects = data.projects || [];
+      renderProjects();
+      await openProject(data.project.project_name);
+    }
+
+    async function openProject(projectName) {
+      const encoded = encodeURIComponent(projectName);
+      const res = await fetch(`/api/projects/${encoded}`);
+      const data = await res.json();
+
+      state.currentProjectName = data.state.project_name;
+      state.title_blocks = data.state.title_blocks || [];
+      state.background_color = data.state.background_color || "#000000";
+      state.urls = data.state.urls || [];
+      state.clips = data.state.clips || [];
+      state.history = data.history || [];
+      state.projects = data.projects || [];
+      state.selectedPreviewIndex = 0;
+      els.generateStatus.textContent = "";
+
+      syncInputsFromState();
+      showEditor();
+    }
+
+    async function removeProject(projectName) {
+      const confirmed = confirm(`Delete project "${projectName}"? This removes the folder from disk.`);
+      if (!confirmed) {
+        return;
+      }
+
+      const encoded = encodeURIComponent(projectName);
+      const res = await fetch(`/api/projects/${encoded}`, { method: "DELETE" });
+
+      const data = await res.json();
+      state.projects = data.projects || [];
+      renderProjects();
+
+      if (state.currentProjectName === projectName) {
+        state.currentProjectName = null;
+        state.history = [];
+        showHome();
+      }
+    }
+
+    async function saveState() {
+      if (!state.currentProjectName) return;
+
+      readStateFromInputs();
+
+      const res = await fetch("/api/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          project_name: state.currentProjectName,
+          title_blocks: state.title_blocks,
+          background_color: state.background_color,
+          urls: state.urls,
+          clips: state.clips
+        })
+      });
+
+      const data = await res.json();
+      if (data.ok) {
+        state.title_blocks = data.state.title_blocks || [];
+        state.background_color = data.state.background_color || "#000000";
+        state.urls = data.state.urls || [];
+        state.clips = data.state.clips || [];
+        syncInputsFromState();
+      }
+    }
+
+    async function downloadClips() {
+      if (!state.currentProjectName) return;
+
+      els.generateStatus.textContent = "Downloading clips... please wait.";
+      await saveState();
+
+      const encoded = encodeURIComponent(state.currentProjectName);
+      const res = await fetch(`/api/projects/${encoded}/download-clips`, {
+        method: "POST"
+      });
+
+      const data = await res.json();
+
+      if (!data.ok) {
+        els.generateStatus.textContent = `Download failed: ${data.error || "unknown error"}`;
+        return;
+      }
+
+      state.clips = data.clips || [];
+      state.selectedPreviewIndex = 0;
+      renderClips();
+      syncSelectedClipInputs();
+      renderPreview();
+      els.generateStatus.textContent = "Download complete.";
+    }
+
+    async function loadClipsFromUrls() {
+      if (!state.currentProjectName) return;
+
+      await saveState();
+
+      const encoded = encodeURIComponent(state.currentProjectName);
+      const res = await fetch(`/api/projects/${encoded}/clips/load-from-urls`, {
+        method: "POST"
+      });
+
+      const data = await res.json();
+      if (data.ok) {
+        state.clips = data.clips || [];
+        state.selectedPreviewIndex = 0;
+        renderClips();
+        syncSelectedClipInputs();
+        renderPreview();
+      }
+    }
+
+    async function moveClip(index, direction) {
+      if (!state.currentProjectName) return;
+
+      const encoded = encodeURIComponent(state.currentProjectName);
+      const res = await fetch(`/api/projects/${encoded}/clips/move/${index}/${direction}`, {
+        method: "POST"
+      });
+
+      const data = await res.json();
+      if (data.ok) {
+        state.clips = data.clips || [];
+        if (state.selectedPreviewIndex >= state.clips.length) {
+          state.selectedPreviewIndex = 0;
+        }
+        renderClips();
+        syncSelectedClipInputs();
+        renderPreview();
+      }
+    }
+
+    async function deleteClip(index) {
+      if (!state.currentProjectName) return;
+
+      const encoded = encodeURIComponent(state.currentProjectName);
+      const res = await fetch(`/api/projects/${encoded}/clips/delete/${index}`, {
+        method: "POST"
+      });
+
+      const data = await res.json();
+      if (data.ok) {
+        state.clips = data.clips || [];
+        if (state.selectedPreviewIndex >= state.clips.length) {
+          state.selectedPreviewIndex = 0;
+        }
+        renderClips();
+        syncSelectedClipInputs();
+        renderPreview();
+      }
+    }
+
+    async function generateProject() {
+      if (!state.currentProjectName) return;
+
+      els.generateBtn.disabled = true;
+      els.generateStatus.textContent = "Generating... please wait.";
+
+      try {
+        await saveState();
+
+        const encoded = encodeURIComponent(state.currentProjectName);
+        const res = await fetch(`/api/projects/${encoded}/generate`, {
+          method: "POST"
+        });
+
+        const data = await res.json();
+        state.history = data.history || [];
+        renderHistory();
+
+        if (data.ok) {
+          els.generateStatus.textContent = "Generation complete.";
+        } else {
+          els.generateStatus.textContent = `Generation failed: ${data.result || data.error || "unknown error"}`;
+        }
+      } catch (error) {
+        els.generateStatus.textContent = `Generation failed: ${error}`;
+      } finally {
+        els.generateBtn.disabled = false;
+      }
+    }
+
+    async function deleteProjectHistory(index) {
+      if (!state.currentProjectName) return;
+
+      const encoded = encodeURIComponent(state.currentProjectName);
+      const res = await fetch(`/api/projects/${encoded}/history/delete/${index}`, {
+        method: "POST"
+      });
+
+      const data = await res.json();
+      if (data.ok) {
+        state.history = data.history || [];
+        renderHistory();
+      }
+    }
+
+    function addTitleBlock() {
+      state.title_blocks.push({
+        text: "New Word",
+        font_family: FONT_OPTIONS[0],
+        font_size: 40,
+        color: "#ffffff",
+        stroke_color: "#000000",
+        stroke_width: 2
+      });
+      renderTitleBlocks();
+      renderPreview();
+    }
+
+    els.newProjectBtn.addEventListener("click", createProject);
+    els.backBtn.addEventListener("click", showHome);
+    els.saveBtn.addEventListener("click", saveState);
+    els.downloadBtn.addEventListener("click", downloadClips);
+    els.loadClipsBtn.addEventListener("click", loadClipsFromUrls);
+    els.generateBtn.addEventListener("click", generateProject);
+    els.addTitleBlockBtn.addEventListener("click", addTitleBlock);
+
+    els.backgroundColor.addEventListener("input", () => {
+      readStateFromInputs();
+      renderPreview();
+    });
+
+    els.rankText.addEventListener("input", () => {
+      readStateFromInputs();
+      renderClips();
+      renderPreview();
+    });
+
+    els.rankFontSize.addEventListener("input", () => {
+      readStateFromInputs();
+      renderPreview();
+    });
+
+    els.rankColor.addEventListener("input", () => {
+      readStateFromInputs();
+      renderPreview();
+    });
+
+    els.rankStrokeColor.addEventListener("input", () => {
+      readStateFromInputs();
+      renderPreview();
+    });
+
+    els.rankStrokeWidth.addEventListener("input", () => {
+      readStateFromInputs();
+      renderPreview();
+    });
+
+    fetchProjects();
+    showHome();
+  </script>
+</body>
+</html>

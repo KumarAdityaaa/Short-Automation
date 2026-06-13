@@ -1,0 +1,8 @@
+yt-dlp
+ffmpeg-python
+kokoro>=0.9.4
+soundfile
+fastapi
+uvicorn
+jinja2
+python-multipart

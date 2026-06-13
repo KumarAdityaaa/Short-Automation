@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.python-version
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# VS Code
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Build/cache
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local project data
+projects/*/input_clips/
+projects/*/output/
+
+# Optional generated artifacts
+generated/
+output/
+
+# Keep project metadata/history, ignore only heavy media if desired
+# projects/*/project.json
+# projects/*/history.json
