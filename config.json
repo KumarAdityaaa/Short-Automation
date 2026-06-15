@@ -1,23 +1,76 @@
 {
-  "input_dir": "input_clips",
-  "output_dir": "output",
-  "tts_cache_dir": "tts_cache",
+  "input_dir": "projects\\TOP 5 FUNNY ANIMAL MOMENTS\\input_clips",
+  "output_dir": "projects\\TOP 5 FUNNY ANIMAL MOMENTS\\output",
+  "tts_cache_dir": "projects\\TOP 5 FUNNY ANIMAL MOMENTS\\tts_cache",
   "ffmpeg_path": "C:\\ffmpeg-8.1.1-essentials_build\\bin\\ffmpeg.exe",
   "ffprobe_path": "C:\\ffmpeg-8.1.1-essentials_build\\bin\\ffprobe.exe",
   "urls": [
-    "https://www.youtube.com/shorts/C0eQO-IkhQU",
-    "https://www.youtube.com/shorts/DyOknSzZeq0"
+    "https://www.tiktok.com/@asscheekentertainment/video/7547933855072767262?q=funny%20animals%20memes&t=1781452815931",
+    "https://www.tiktok.com/@_funnyvideo_00/video/7481222166856453398?q=funny%20animals%20memes&t=1781452815931",
+    "https://www.tiktok.com/@thegreatlondini.com/video/7263676424836500778?q=funny%20animals&t=1781456833882",
+    "https://www.tiktok.com/@lentajaofficial/video/7098999728553086213?q=funny%20animals&t=1781457096594",
+    "https://www.tiktok.com/@doggo_royale/video/7197585519683898666?q=funny%20animals&t=1781457096594"
   ],
+  "overlay": {
+    "enabled": true,
+    "image_path": "projects\\TOP 5 FUNNY ANIMAL MOMENTS\\overlay\\preview_overlay.png",
+    "updated_at": "2026-06-14 22:46:56"
+  },
   "ranking": {
-    "title": "Top 5 Moments",
-    "count": 5
+    "count": 5,
+    "title": "",
+    "title_blocks": [
+      {
+        "text": "TOP",
+        "font_family": "Impact, Arial Black, sans-serif",
+        "font_size": 100,
+        "color": "#ffffff",
+        "stroke_color": "#000000",
+        "stroke_width": 2
+      },
+      {
+        "text": "5",
+        "font_family": "Impact, Arial Black, sans-serif",
+        "font_size": 100,
+        "color": "#ff2b2b",
+        "stroke_color": "#000000",
+        "stroke_width": 2
+      },
+      {
+        "text": "FUNNY",
+        "font_family": "Impact, Arial Black, sans-serif",
+        "font_size": 100,
+        "color": "#ffe600",
+        "stroke_color": "#000000",
+        "stroke_width": 2
+      },
+      {
+        "text": "ANIMAL",
+        "font_family": "Impact, Arial Black, sans-serif",
+        "font_size": 100,
+        "color": "#ffffff",
+        "stroke_color": "#000000",
+        "stroke_width": 2
+      },
+      {
+        "text": "MOMENTS",
+        "font_family": "Impact, Arial Black, sans-serif",
+        "font_size": 100,
+        "color": "#ffff00",
+        "stroke_color": "#000000",
+        "stroke_width": 2
+      }
+    ]
   },
   "compose": {
     "enabled": true,
     "output_name": "final_short.mp4"
   },
   "video": {
-    "resolution": [1080, 1920],
+    "resolution": [
+      1080,
+      1920
+    ],
     "fps": 30
   }
 }

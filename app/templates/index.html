@@ -7,106 +7,204 @@
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
-  <div id="homeScreen" class="page" style="display:grid; grid-template-columns: 380px 1fr;">
-    <div class="left-panel">
+  <div id="homeScreen" class="page-shell home-layout">
+    <div class="left-stack">
       <div class="panel-card">
-        <h1>Shorts Ranking Studio</h1>
-        <p class="subtext">Create and manage local shorts projects.</p>
-        <button id="newProjectBtn" class="btn primary" type="button">Create New Short</button>
+        <div class="hero-title">Shorts Ranking Studio</div>
+        <p class="subtext">Create and manage local ranking-style shorts projects with shared title styling and clip-specific rank styling.</p>
+        <div class="btn-row" style="margin-top: 14px;">
+          <button id="newProjectBtn" class="btn primary" type="button">Create New Short</button>
+        </div>
       </div>
 
       <div class="panel-card">
-        <h2>Your Projects</h2>
-        <div id="projectsContainer" class="history-list"></div>
-        <p id="noProjectsText" class="subtext">No projects created yet.</p>
+        <div class="panel-title-row">
+          <h2>Your Projects</h2>
+          <span class="status-pill">Local only</span>
+        </div>
+        <div id="projectsContainer" class="project-list"></div>
+        <p id="noProjectsText" class="empty-note">No projects created yet.</p>
       </div>
     </div>
 
-    <div class="right-panel">
-      <div class="panel-card" style="width:100%; max-width:900px;">
-        <h2>Project Library</h2>
+    <div class="right-stack">
+      <div class="panel-card">
+        <div class="panel-title-row">
+          <h2>Project Library</h2>
+        </div>
         <p class="subtext">
-          Each project gets its own folder in <code>projects/ProjectName/</code> with its own clips, output, and history.
+          Every project gets its own folder in <code>projects/ProjectName/</code> with clips, output, and history separated cleanly.
         </p>
       </div>
     </div>
   </div>
 
-  <div id="editorScreen" class="page" style="display:none;">
-    <div class="left-panel">
+  <div id="editorScreen" class="page-shell editor-layout" style="display:none;">
+    <div class="left-stack">
       <div class="panel-card">
-        <button id="backBtn" class="btn" type="button">← Back to Projects</button>
-        <h1 id="editorProjectName" style="margin-top:16px;">Project</h1>
-        <p class="subtext">Shared title styling, per-clip rank styling.</p>
+        <div class="toolbar-row">
+          <button id="backBtn" class="btn ghost" type="button">← Back to Projects</button>
+          <span class="status-pill" id="generateStatus" aria-live="polite" aria-busy="false">Ready</span>
+        </div>
+
+        <div id="generationPanel" class="generation-panel" style="display:none;">
+          <div class="generation-panel-top">
+            <div class="generation-meta">
+              <div id="generationLabel" class="generation-label">Idle</div>
+              <div id="generationElapsed" class="generation-elapsed">00:00</div>
+            </div>
+            <div id="generationPercent" class="generation-percent">0%</div>
+          </div>
+          <div class="generation-progress-track">
+            <div id="generationProgressBar" class="generation-progress-bar" style="width: 0%;"></div>
+          </div>
+          <div id="generationSubtext" class="generation-subtext">Waiting to start.</div>
+        </div>
+
+        <div style="margin-top: 16px;">
+          <div class="hero-title" id="editorProjectName">Project</div>
+          <p class="subtext">Modern polished editor UI with shared title blocks and selected-clip rank controls.</p>
+        </div>
+
+        <div class="divider"></div>
 
         <div class="control-form">
-          <label for="background_color">Background Color</label>
-          <input id="background_color" type="color" />
+          <div>
+            <label for="background_color">Background Color</label>
+            <input id="background_color" type="color" />
+          </div>
 
-          <label for="urls">Clip URLs (one per line)</label>
-          <textarea id="urls" rows="6"></textarea>
+          <div>
+            <label for="urls">Clip URLs (one per line)</label>
+            <textarea id="urls" rows="6"></textarea>
+          </div>
 
-          <button id="saveBtn" class="btn primary" type="button">Save Project State</button>
-          <button id="downloadBtn" class="btn primary" type="button">Download Clips From URLs</button>
-          <button id="loadClipsBtn" class="btn primary" type="button">Refresh Clip List</button>
-          <button id="generateBtn" class="btn primary" type="button">Generate Final MP4</button>
-          <p id="generateStatus" class="subtext"></p>
+          <div class="btn-row">
+            <button id="saveBtn" class="btn primary" type="button">Save Project State</button>
+            <button id="downloadBtn" class="btn" type="button">Download Clips</button>
+            <button id="loadClipsBtn" class="btn" type="button">Refresh Clip List</button>
+            <button id="generateBtn" class="btn primary" type="button">Generate Final MP4</button>
+          </div>
         </div>
       </div>
 
       <div class="panel-card">
-        <h2>Title Word Blocks</h2>
-        <div id="titleBlocksContainer" class="history-list"></div>
-        <button id="addTitleBlockBtn" class="btn primary" type="button">Add Word Block</button>
+        <div class="panel-title-row">
+          <h2>Title Word Blocks</h2>
+          <button id="addTitleBlockBtn" class="btn small primary" type="button">Add Block</button>
+        </div>
+        <div id="titleBlocksContainer" class="title-blocks-list"></div>
       </div>
 
       <div class="panel-card">
-        <h2>Selected Clip Rank Style</h2>
+        <div class="panel-title-row">
+          <h2>Selected Clip Rank</h2>
+        </div>
+
         <div class="control-form">
-          <label for="rank_text">Rank Text</label>
-          <input id="rank_text" type="text" />
+          <div>
+            <label for="rank_text">Rank Text</label>
+            <input id="rank_text" type="text" />
+          </div>
 
-          <label for="rank_font_size">Rank Text Size</label>
-          <input id="rank_font_size" type="number" min="12" max="160" step="1" />
+          <div class="control-grid-2">
+            <div>
+              <label for="rank_font_size">Rank Text Size</label>
+              <input id="rank_font_size" type="number" min="12" max="160" step="1" />
+            </div>
 
-          <label for="rank_color">Rank Color</label>
-          <input id="rank_color" type="color" />
+            <div>
+              <label for="rank_stroke_width">Rank Stroke Width</label>
+              <input id="rank_stroke_width" type="number" min="0" max="12" step="1" />
+            </div>
+          </div>
 
-          <label for="rank_stroke_color">Rank Stroke Color</label>
-          <input id="rank_stroke_color" type="color" />
+          <div class="control-grid-2">
+            <div>
+              <label for="rank_color">Rank Color</label>
+              <input id="rank_color" type="color" />
+            </div>
 
-          <label for="rank_stroke_width">Rank Stroke Width</label>
-          <input id="rank_stroke_width" type="number" min="0" max="12" step="1" />
+            <div>
+              <label for="rank_stroke_color">Rank Stroke Color</label>
+              <input id="rank_stroke_color" type="color" />
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="control-form">
+          <div>
+            <label for="intro_text">Custom Intro Voice Text</label>
+            <textarea id="intro_text" rows="4" placeholder="Example: At number 2, this clip has the craziest ending."></textarea>
+          </div>
+
+          <div class="control-grid-2">
+            <div>
+              <label for="intro_tts_path">Intro TTS Path</label>
+              <input id="intro_tts_path" type="text" placeholder="Auto-generated later" />
+            </div>
+
+            <div>
+              <label for="duck_original_audio">Lower Clip Audio During Intro</label>
+              <select id="duck_original_audio">
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="btn-row">
+            <button id="generateIntroAudioBtn" class="btn primary" type="button">Generate Audio</button>
+          </div>
         </div>
       </div>
 
       <div class="panel-card">
-        <h2>Clip Order</h2>
+        <div class="panel-title-row">
+          <h2>Clip Order</h2>
+        </div>
         <p class="subtext">Select a clip to preview and edit only that clip’s rank style.</p>
-        <div id="clipsContainer" class="history-list"></div>
-        <p id="noClipsText" class="subtext">No clips loaded yet.</p>
+        <div id="clipsContainer" class="clip-list" style="margin-top: 12px;"></div>
+        <p id="noClipsText" class="empty-note">No clips loaded yet.</p>
       </div>
 
       <div class="panel-card">
-        <h2>Project History</h2>
+        <div class="panel-title-row">
+          <h2>Project History</h2>
+        </div>
         <div id="historyContainer" class="history-list"></div>
-        <p id="noHistoryText" class="subtext">No generated outputs for this project yet.</p>
+        <p id="noHistoryText" class="empty-note">No generated outputs for this project yet.</p>
       </div>
     </div>
 
-    <div class="right-panel">
-      <div class="preview-shell">
-        <div id="previewCanvas" class="preview-video" style="position:relative; overflow:hidden; background:#000;">
-          <div id="titleOverlay" style="position:absolute; top:18px; left:16px; right:16px; z-index:20; text-align:center;"></div>
+    <div class="right-stack preview-panel">
+      <div class="preview-card">
+        <div class="preview-header">
+          <h2>Final Layout Preview</h2>
+          <span class="status-pill">Selected clip</span>
+        </div>
 
-          <video id="previewPlayer" playsinline controls muted
-                 style="width:100%; height:100%; object-fit:cover; background:black;"></video>
-
-          <div id="previewRank"
-               style="position:absolute; left:18px; top:160px; font-size:58px; font-weight:900; z-index:25; line-height:1;">
-            1.
+        <div class="preview-frame-wrap">
+          <div id="previewCanvas" class="preview-frame">
+            <div id="titleOverlay" class="preview-title-overlay"></div>
+            <video id="previewPlayer" class="preview-video" playsinline controls muted></video>
+            <div id="previewRank" class="preview-rank">1.</div>
           </div>
         </div>
+      </div>
+
+      <div class="panel-card" style="margin-top: 12px;">
+        <div class="panel-title-row">
+          <h2>Intro Voice Preview</h2>
+          <span class="status-pill">Selected clip</span>
+        </div>
+
+        <audio id="introAudioPlayer" controls style="width:100%; margin-top:12px; display:none;"></audio>
+        <p id="introAudioStatus" class="empty-note" style="display:block; margin-top:10px;">
+          No intro audio generated yet.
+        </p>
       </div>
     </div>
   </div>
@@ -131,8 +229,20 @@
       clips: [],
       history: [],
       projects: [],
-      selectedPreviewIndex: 0
+      selectedPreviewIndex: 0,
+      overlayImagePath: "",
+      overlayUpdatedAt: ""
     };
+
+    let generationPollTimer = null;
+    let generationElapsedTimer = null;
+    let activeGenerationJobId = null;
+    let statusAnimationTimer = null;
+    let statusAnimationBaseText = "Processing";
+    let statusAnimationStep = 0;
+    let generationStartedAtTs = null;
+    let overlaySaveTimer = null;
+    let overlaySaveInFlight = false;
 
     const els = {
       homeScreen: document.getElementById("homeScreen"),
@@ -149,6 +259,12 @@
       loadClipsBtn: document.getElementById("loadClipsBtn"),
       generateBtn: document.getElementById("generateBtn"),
       generateStatus: document.getElementById("generateStatus"),
+      generationPanel: document.getElementById("generationPanel"),
+      generationLabel: document.getElementById("generationLabel"),
+      generationElapsed: document.getElementById("generationElapsed"),
+      generationPercent: document.getElementById("generationPercent"),
+      generationProgressBar: document.getElementById("generationProgressBar"),
+      generationSubtext: document.getElementById("generationSubtext"),
       titleBlocksContainer: document.getElementById("titleBlocksContainer"),
       addTitleBlockBtn: document.getElementById("addTitleBlockBtn"),
       rankText: document.getElementById("rank_text"),
@@ -156,6 +272,12 @@
       rankColor: document.getElementById("rank_color"),
       rankStrokeColor: document.getElementById("rank_stroke_color"),
       rankStrokeWidth: document.getElementById("rank_stroke_width"),
+      introText: document.getElementById("intro_text"),
+      introTtsPath: document.getElementById("intro_tts_path"),
+      duckOriginalAudio: document.getElementById("duck_original_audio"),
+      generateIntroAudioBtn: document.getElementById("generateIntroAudioBtn"),
+      introAudioPlayer: document.getElementById("introAudioPlayer"),
+      introAudioStatus: document.getElementById("introAudioStatus"),
       clipsContainer: document.getElementById("clipsContainer"),
       noClipsText: document.getElementById("noClipsText"),
       historyContainer: document.getElementById("historyContainer"),
@@ -166,6 +288,113 @@
       previewPlayer: document.getElementById("previewPlayer")
     };
 
+    function formatElapsed(seconds) {
+      const safe = Math.max(0, Math.floor(seconds || 0));
+      const mins = String(Math.floor(safe / 60)).padStart(2, "0");
+      const secs = String(safe % 60).padStart(2, "0");
+      return `${mins}:${secs}`;
+    }
+
+    function showGenerationPanel() {
+      els.generationPanel.style.display = "block";
+    }
+
+    function hideGenerationPanel() {
+      els.generationPanel.style.display = "none";
+    }
+
+    function setGenerationProgress(progress = 0, label = "Idle", subtext = "") {
+      const safeProgress = Math.max(0, Math.min(100, Math.round(progress || 0)));
+      showGenerationPanel();
+      els.generationLabel.textContent = label || "Idle";
+      els.generationPercent.textContent = `${safeProgress}%`;
+      els.generationProgressBar.style.width = `${safeProgress}%`;
+      els.generationSubtext.textContent = subtext || "Waiting to start.";
+    }
+
+    function startElapsedTimer(startTs = null) {
+      stopElapsedTimer();
+      generationStartedAtTs = startTs || (Date.now() / 1000);
+      els.generationElapsed.textContent = "00:00";
+
+      generationElapsedTimer = setInterval(() => {
+        if (!generationStartedAtTs) return;
+        const now = Date.now() / 1000;
+        els.generationElapsed.textContent = formatElapsed(now - generationStartedAtTs);
+      }, 500);
+    }
+
+    function stopElapsedTimer() {
+      if (generationElapsedTimer) {
+        clearInterval(generationElapsedTimer);
+        generationElapsedTimer = null;
+      }
+    }
+
+    function createOverlayCanvas() {
+      const canvas = document.createElement("canvas");
+      canvas.width = 1080;
+      canvas.height = 1920;
+      return canvas;
+    }
+
+    function drawTextStrokeFill(ctx, text, x, y, styles = {}) {
+      ctx.save();
+      ctx.font = `${styles.fontWeight || 900} ${styles.fontSize || 40}px ${styles.fontFamily || "Impact, Arial Black, sans-serif"}`;
+      ctx.textAlign = styles.textAlign || "center";
+      ctx.textBaseline = "top";
+      ctx.lineJoin = "round";
+      ctx.strokeStyle = styles.strokeColor || "#000000";
+      ctx.lineWidth = styles.strokeWidth || 2;
+      ctx.fillStyle = styles.color || "#ffffff";
+
+      if ((styles.shadowBlur || 0) > 0) {
+        ctx.shadowColor = styles.shadowColor || "rgba(0,0,0,0.35)";
+        ctx.shadowBlur = styles.shadowBlur || 0;
+        ctx.shadowOffsetX = styles.shadowOffsetX || 0;
+        ctx.shadowOffsetY = styles.shadowOffsetY || 2;
+      }
+
+      ctx.strokeText(text, x, y);
+      ctx.fillText(text, x, y);
+      ctx.restore();
+    }
+
+    function drawOverlayRow(ctx, blocks, centerX, y, wordGap = 20) {
+      if (!blocks.length) return;
+
+      const metrics = blocks.map(block => {
+        const fontSize = parseInt(block.font_size ?? 40, 10);
+        const fontFamily = block.font_family || FONT_OPTIONS[0];
+        ctx.save();
+        ctx.font = `900 ${fontSize}px ${fontFamily}`;
+        const width = ctx.measureText(block.text || "Word").width;
+        ctx.restore();
+        return { block, width, fontSize, fontFamily };
+      });
+
+      const totalWidth =
+        metrics.reduce((sum, item) => sum + item.width, 0) +
+        (wordGap * Math.max(metrics.length - 1, 0));
+
+      let cursorX = centerX - (totalWidth / 2);
+
+      metrics.forEach(item => {
+        drawTextStrokeFill(ctx, item.block.text || "Word", cursorX + (item.width / 2), y, {
+          fontFamily: item.fontFamily,
+          fontSize: item.fontSize,
+          color: item.block.color || "#ffffff",
+          strokeColor: item.block.stroke_color || "#000000",
+          strokeWidth: parseInt(item.block.stroke_width ?? 2, 10),
+          shadowColor: "rgba(0,0,0,0.35)",
+          shadowBlur: 6,
+          shadowOffsetY: 2,
+          textAlign: "center"
+        });
+        cursorX += item.width + wordGap;
+      });
+    }
+
     function getSelectedClip() {
       if (!state.clips.length) return null;
       if (state.selectedPreviewIndex < 0 || state.selectedPreviewIndex >= state.clips.length) {
@@ -174,24 +403,139 @@
       return state.clips[state.selectedPreviewIndex];
     }
 
+    function getPreviewOverlayLayout() {
+      const clip = getSelectedClip();
+      const titleBlocks = Array.isArray(state.title_blocks) ? state.title_blocks : [];
+
+      const topRow = titleBlocks.slice(0, 2);
+      const bottomRow = titleBlocks.slice(2);
+
+      return {
+        canvas: { width: 1080, height: 1920 },
+        title: {
+          topRow,
+          bottomRow,
+          centerX: 540,
+          topY: 40,
+          rowGap: 10,
+          wordGap: 20
+        },
+        rank: {
+          text: clip?.rank_text || "1.",
+          fontSize: parseInt(clip?.rank_font_size ?? 110, 10),
+          color: clip?.rank_color || "#ffe600",
+          strokeColor: clip?.rank_stroke_color || "#000000",
+          strokeWidth: parseInt(clip?.rank_stroke_width ?? 2, 10),
+          x: 70,
+          y: 290,
+          fontFamily: "Impact, Arial Black, sans-serif"
+        }
+      };
+    }
+
+    function renderOverlayToCanvas() {
+      const layout = getPreviewOverlayLayout();
+      const canvas = createOverlayCanvas();
+      const ctx = canvas.getContext("2d");
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      drawOverlayRow(
+        ctx,
+        layout.title.topRow,
+        layout.title.centerX,
+        layout.title.topY,
+        layout.title.wordGap
+      );
+
+      const bottomY = layout.title.topY + 128;
+      drawOverlayRow(
+        ctx,
+        layout.title.bottomRow,
+        layout.title.centerX,
+        bottomY,
+        layout.title.wordGap
+      );
+
+      return canvas;
+    }
+
+    function setStatus(text, kind = "idle") {
+      stopStatusAnimation();
+      els.generateStatus.textContent = text;
+      els.generateStatus.classList.remove("loading", "success", "error");
+      els.generateStatus.setAttribute("aria-busy", "false");
+
+      if (kind === "success") {
+        els.generateStatus.classList.add("success");
+      } else if (kind === "error") {
+        els.generateStatus.classList.add("error");
+      }
+    }
+
+    function startStatusAnimation(baseText = "Generating") {
+      stopStatusAnimation();
+      statusAnimationBaseText = baseText;
+      statusAnimationStep = 0;
+      els.generateStatus.classList.remove("success", "error");
+      els.generateStatus.classList.add("loading");
+      els.generateStatus.setAttribute("aria-busy", "true");
+      els.generateStatus.textContent = baseText;
+
+      statusAnimationTimer = setInterval(() => {
+        statusAnimationStep = (statusAnimationStep + 1) % 4;
+        els.generateStatus.textContent = `${statusAnimationBaseText}${".".repeat(statusAnimationStep)}`;
+      }, 450);
+    }
+
+    function stopStatusAnimation() {
+      if (statusAnimationTimer) {
+        clearInterval(statusAnimationTimer);
+        statusAnimationTimer = null;
+      }
+      els.generateStatus.classList.remove("loading");
+      els.generateStatus.setAttribute("aria-busy", "false");
+    }
+
+    function stopGenerationPolling() {
+      if (generationPollTimer) {
+        clearInterval(generationPollTimer);
+        generationPollTimer = null;
+      }
+      activeGenerationJobId = null;
+      stopStatusAnimation();
+      stopElapsedTimer();
+    }
+
     function showHome() {
       els.homeScreen.style.display = "grid";
       els.editorScreen.style.display = "none";
     }
 
     function showEditor() {
-      els.homeScreen.style.display = "none";
+      els.homeScreen.style.display = "grid";
       els.editorScreen.style.display = "grid";
+      els.homeScreen.style.display = "none";
+    }
+
+    function titleBlocksFromProjectName(projectName) {
+      const raw = (projectName || "").trim();
+      if (!raw) return [];
+
+      const words = raw.split(/\s+/).filter(Boolean);
+      return words.map((word, index) => ({
+        text: word,
+        font_family: FONT_OPTIONS[0],
+        font_size: 120,
+        color: index === 1 ? "#ff2b2b" : index === 2 ? "#ffe600" : "#ffffff",
+        stroke_color: "#000000",
+        stroke_width: 2
+      }));
     }
 
     function ensureDefaultTitleBlocks() {
       if (!Array.isArray(state.title_blocks) || !state.title_blocks.length) {
-        state.title_blocks = [
-          { text: "Ranking", font_family: FONT_OPTIONS[0], font_size: 40, color: "#ffffff", stroke_color: "#000000", stroke_width: 2 },
-          { text: "Funniest", font_family: FONT_OPTIONS[0], font_size: 40, color: "#ff2b2b", stroke_color: "#000000", stroke_width: 2 },
-          { text: "Instant Karma", font_family: FONT_OPTIONS[0], font_size: 40, color: "#ffe600", stroke_color: "#000000", stroke_width: 2 },
-          { text: "Moments", font_family: FONT_OPTIONS[0], font_size: 40, color: "#ffffff", stroke_color: "#000000", stroke_width: 2 }
-        ];
+        state.title_blocks = titleBlocksFromProjectName(state.currentProjectName);
       }
     }
 
@@ -206,12 +550,14 @@
         clip.rank_color = els.rankColor.value || "#ffe600";
         clip.rank_stroke_color = els.rankStrokeColor.value || "#000000";
         clip.rank_stroke_width = parseInt(els.rankStrokeWidth.value || "2", 10);
+        clip.intro_text = els.introText.value || "";
+        clip.intro_tts_path = els.introTtsPath.value || "";
+        clip.duck_original_audio = els.duckOriginalAudio.value === "true";
       }
     }
 
     function syncInputsFromState() {
       ensureDefaultTitleBlocks();
-
       els.editorProjectName.textContent = state.currentProjectName || "Project";
       els.backgroundColor.value = state.background_color || "#000000";
       els.urls.value = (state.urls || []).join("\n");
@@ -233,6 +579,12 @@
         els.rankColor.value = "#ffe600";
         els.rankStrokeColor.value = "#000000";
         els.rankStrokeWidth.value = "2";
+        els.introText.value = "";
+        els.introTtsPath.value = "";
+        els.duckOriginalAudio.value = "true";
+        els.introAudioPlayer.removeAttribute("src");
+        els.introAudioPlayer.style.display = "none";
+        els.introAudioStatus.textContent = "No intro audio generated yet.";
         return;
       }
 
@@ -241,6 +593,21 @@
       els.rankColor.value = clip.rank_color || "#ffe600";
       els.rankStrokeColor.value = clip.rank_stroke_color || "#000000";
       els.rankStrokeWidth.value = clip.rank_stroke_width ?? 2;
+      els.introText.value = clip.intro_text || "";
+      els.introTtsPath.value = clip.intro_tts_path || "";
+      els.duckOriginalAudio.value = (clip.duck_original_audio ?? true) ? "true" : "false";
+
+      if (clip.intro_tts_path) {
+        const fileName = clip.intro_tts_path.split(/[/\\]/).pop();
+        const encodedProject = encodeURIComponent(state.currentProjectName);
+        els.introAudioPlayer.src = `/api/projects/${encodedProject}/audio-preview/${fileName}?v=${Date.now()}`;
+        els.introAudioPlayer.style.display = "block";
+        els.introAudioStatus.textContent = "Generated intro audio available.";
+      } else {
+        els.introAudioPlayer.removeAttribute("src");
+        els.introAudioPlayer.style.display = "none";
+        els.introAudioStatus.textContent = "No intro audio generated yet.";
+      }
     }
 
     function renderProjects() {
@@ -255,26 +622,25 @@
 
       state.projects.forEach(project => {
         const row = document.createElement("div");
-        row.className = "history-item";
+        row.className = "list-card";
 
         const left = document.createElement("div");
+        left.className = "list-main";
         left.innerHTML = `
-          <div class="history-title">${project.project_name}</div>
-          <div class="history-meta">${project.path}</div>
+          <div class="list-title">${project.project_name}</div>
+          <div class="list-meta">${project.path}</div>
         `;
 
         const right = document.createElement("div");
-        right.style.display = "flex";
-        right.style.gap = "8px";
-        right.style.flexWrap = "wrap";
+        right.className = "list-actions";
 
         const openBtn = document.createElement("button");
-        openBtn.className = "btn primary";
+        openBtn.className = "btn primary small";
         openBtn.textContent = "Open";
         openBtn.onclick = () => openProject(project.project_name);
 
         const deleteBtn = document.createElement("button");
-        deleteBtn.className = "btn danger";
+        deleteBtn.className = "btn danger small";
         deleteBtn.textContent = "Delete";
         deleteBtn.onclick = () => removeProject(project.project_name);
 
@@ -287,21 +653,28 @@
       });
     }
 
+    function makeLabeled(labelText, inputNode) {
+      const wrapper = document.createElement("div");
+      const label = document.createElement("label");
+      label.textContent = labelText;
+      wrapper.appendChild(label);
+      wrapper.appendChild(inputNode);
+      return wrapper;
+    }
+
     function renderTitleBlocks() {
       els.titleBlocksContainer.innerHTML = "";
 
       state.title_blocks.forEach((block, index) => {
         const item = document.createElement("div");
-        item.className = "history-item";
-        item.style.display = "block";
+        item.className = "title-block-card";
 
         const title = document.createElement("div");
-        title.className = "history-title";
+        title.className = "list-title";
         title.textContent = `Word Block ${index + 1}`;
 
         const form = document.createElement("div");
         form.className = "control-form";
-        form.style.marginTop = "10px";
 
         const textInput = document.createElement("input");
         textInput.type = "text";
@@ -364,7 +737,7 @@
         };
 
         const removeBtn = document.createElement("button");
-        removeBtn.className = "btn danger";
+        removeBtn.className = "btn danger small";
         removeBtn.type = "button";
         removeBtn.textContent = "Remove";
         removeBtn.onclick = () => {
@@ -377,10 +750,19 @@
         };
 
         form.appendChild(makeLabeled("Text", textInput));
-        form.appendChild(makeLabeled("Font", fontSelect));
-        form.appendChild(makeLabeled("Text Size", sizeInput));
-        form.appendChild(makeLabeled("Color", colorInput));
-        form.appendChild(makeLabeled("Stroke Color", strokeColorInput));
+
+        const grid1 = document.createElement("div");
+        grid1.className = "control-grid-2";
+        grid1.appendChild(makeLabeled("Font", fontSelect));
+        grid1.appendChild(makeLabeled("Text Size", sizeInput));
+
+        const grid2 = document.createElement("div");
+        grid2.className = "control-grid-2";
+        grid2.appendChild(makeLabeled("Color", colorInput));
+        grid2.appendChild(makeLabeled("Stroke Color", strokeColorInput));
+
+        form.appendChild(grid1);
+        form.appendChild(grid2);
         form.appendChild(makeLabeled("Stroke Width", strokeWidthInput));
         form.appendChild(removeBtn);
 
@@ -388,15 +770,6 @@
         item.appendChild(form);
         els.titleBlocksContainer.appendChild(item);
       });
-    }
-
-    function makeLabeled(labelText, inputNode) {
-      const wrapper = document.createElement("div");
-      const label = document.createElement("label");
-      label.textContent = labelText;
-      wrapper.appendChild(label);
-      wrapper.appendChild(inputNode);
-      return wrapper;
     }
 
     function renderClips() {
@@ -411,14 +784,11 @@
 
       state.clips.forEach((clip, index) => {
         const item = document.createElement("div");
-        item.className = "history-item";
+        item.className = "list-card" + (index === state.selectedPreviewIndex ? " active" : "");
         item.style.cursor = "pointer";
 
-        if (index === state.selectedPreviewIndex) {
-          item.style.outline = "2px solid #4c7dff";
-        }
-
         item.onclick = () => {
+          readStateFromInputs();
           state.selectedPreviewIndex = index;
           renderClips();
           syncSelectedClipInputs();
@@ -426,19 +796,20 @@
         };
 
         const left = document.createElement("div");
+        left.className = "list-main";
         left.innerHTML = `
-          <div class="history-title">${clip.name}</div>
-          <div class="history-meta">${clip.url || ""}</div>
-          <div class="history-meta">Rank text: ${clip.rank_text || ""}</div>
+          <div class="list-title">${clip.name}</div>
+          <div class="list-meta">${clip.url || ""}</div>
+          <div class="list-meta">Rank text: ${clip.rank_text || ""}</div>
+          <div class="list-meta">Intro: ${clip.intro_text ? clip.intro_text : "None"}</div>
+          <div class="list-meta">Duck audio: ${(clip.duck_original_audio ?? true) ? "Yes" : "No"}</div>
         `;
 
         const right = document.createElement("div");
-        right.style.display = "flex";
-        right.style.gap = "8px";
-        right.style.flexWrap = "wrap";
+        right.className = "list-actions";
 
         const upBtn = document.createElement("button");
-        upBtn.className = "btn primary";
+        upBtn.className = "btn small";
         upBtn.textContent = "↑";
         upBtn.onclick = async (e) => {
           e.stopPropagation();
@@ -446,7 +817,7 @@
         };
 
         const downBtn = document.createElement("button");
-        downBtn.className = "btn primary";
+        downBtn.className = "btn small";
         downBtn.textContent = "↓";
         downBtn.onclick = async (e) => {
           e.stopPropagation();
@@ -454,7 +825,7 @@
         };
 
         const deleteBtn = document.createElement("button");
-        deleteBtn.className = "btn danger";
+        deleteBtn.className = "btn danger small";
         deleteBtn.textContent = "Delete";
         deleteBtn.onclick = async (e) => {
           e.stopPropagation();
@@ -483,22 +854,25 @@
 
       state.history.forEach((item, index) => {
         const row = document.createElement("div");
-        row.className = "history-item";
+        row.className = "list-card";
 
         const left = document.createElement("div");
+        left.className = "list-main";
         left.innerHTML = `
-          <div class="history-title">${item.title || "Generated Output"}</div>
-          <div class="history-meta">${item.created_at || ""} • ${item.status || ""}</div>
-          <div class="history-meta">${item.file_path || ""}</div>
+          <div class="list-title">${item.title || "Generated Output"}</div>
+          <div class="list-meta">${item.created_at || ""} • ${item.status || ""}</div>
+          <div class="list-meta">${item.file_path || ""}</div>
         `;
 
         const right = document.createElement("div");
+        right.className = "list-actions";
+
         const deleteBtn = document.createElement("button");
-        deleteBtn.className = "btn danger";
+        deleteBtn.className = "btn danger small";
         deleteBtn.textContent = "Delete";
         deleteBtn.onclick = () => deleteProjectHistory(index);
-        right.appendChild(deleteBtn);
 
+        right.appendChild(deleteBtn);
         row.appendChild(left);
         row.appendChild(right);
         els.historyContainer.appendChild(row);
@@ -508,40 +882,51 @@
     function renderPreview() {
       els.previewCanvas.style.background = state.background_color || "#000000";
       els.titleOverlay.innerHTML = "";
+      els.titleOverlay.style.position = "absolute";
+      els.titleOverlay.style.left = "0";
+      els.titleOverlay.style.top = "0";
+      els.titleOverlay.style.width = "100%";
+      els.titleOverlay.style.pointerEvents = "none";
 
-      const topRow = document.createElement("div");
-      topRow.style.display = "flex";
-      topRow.style.justifyContent = "center";
-      topRow.style.gap = "8px";
-      topRow.style.flexWrap = "wrap";
+      const layout = getPreviewOverlayLayout();
+      const scaleX = els.previewCanvas.clientWidth / layout.canvas.width;
+      const scaleY = els.previewCanvas.clientHeight / layout.canvas.height;
 
-      const bottomRow = document.createElement("div");
-      bottomRow.style.display = "flex";
-      bottomRow.style.justifyContent = "center";
-      bottomRow.style.gap = "8px";
-      bottomRow.style.flexWrap = "wrap";
-      bottomRow.style.marginTop = "4px";
+      function makePreviewRow(blocks, yPx) {
+        const row = document.createElement("div");
+        row.style.position = "absolute";
+        row.style.left = "50%";
+        row.style.top = `${yPx * scaleY}px`;
+        row.style.transform = "translateX(-50%)";
+        row.style.display = "flex";
+        row.style.alignItems = "flex-start";
+        row.style.justifyContent = "center";
+        row.style.gap = `${layout.title.wordGap * scaleX}px`;
+        row.style.whiteSpace = "nowrap";
 
-      state.title_blocks.forEach((block, index) => {
-        const span = document.createElement("span");
-        span.textContent = block.text || "Word";
-        span.style.fontFamily = block.font_family || FONT_OPTIONS[0];
-        span.style.color = block.color || "#ffffff";
-        span.style.fontWeight = "900";
-        span.style.fontSize = `${block.font_size ?? 40}px`;
-        span.style.lineHeight = "1";
-        span.style.webkitTextStroke = `${block.stroke_width ?? 2}px ${block.stroke_color || "#000000"}`;
-        span.style.textShadow = "0 2px 6px rgba(0,0,0,0.35)";
+        blocks.forEach((block) => {
+          const span = document.createElement("span");
+          span.textContent = block.text || "Word";
+          span.style.fontFamily = block.font_family || FONT_OPTIONS[0];
+          span.style.color = block.color || "#ffffff";
+          span.style.fontWeight = "900";
+          span.style.fontSize = `${(block.font_size ?? 120) * scaleX}px`;
+          span.style.lineHeight = "1";
+          span.style.display = "inline-block";
+          span.style.webkitTextStroke = `${Math.max(1, (block.stroke_width ?? 2) * scaleX)}px ${block.stroke_color || "#000000"}`;
+          span.style.textShadow = "0 2px 6px rgba(0,0,0,0.35)";
+          row.appendChild(span);
+        });
 
-        if (index < 2) {
-          topRow.appendChild(span);
-        } else {
-          bottomRow.appendChild(span);
-        }
-      });
+        return row;
+      }
 
+      const topRow = makePreviewRow(layout.title.topRow, layout.title.topY);
       els.titleOverlay.appendChild(topRow);
-      if (bottomRow.children.length) {
+
+      if (layout.title.bottomRow.length) {
+        const bottomY = layout.title.topY + 128;
+        const bottomRow = makePreviewRow(layout.title.bottomRow, bottomY);
         els.titleOverlay.appendChild(bottomRow);
       }
 
@@ -554,6 +939,7 @@
         els.previewRank.style.webkitTextStroke = "2px #000000";
         els.previewPlayer.removeAttribute("src");
         els.previewPlayer.load();
+        scheduleOverlaySave();
         return;
       }
 
@@ -572,6 +958,43 @@
         els.previewPlayer.removeAttribute("src");
         els.previewPlayer.load();
       }
+
+      scheduleOverlaySave();
+    }
+
+    async function saveOverlayImageToProject() {
+      if (!state.currentProjectName || overlaySaveInFlight) return;
+
+      try {
+        overlaySaveInFlight = true;
+        const canvas = renderOverlayToCanvas();
+        const imageData = canvas.toDataURL("image/png");
+        const encoded = encodeURIComponent(state.currentProjectName);
+
+        const res = await fetch(`/api/projects/${encoded}/overlay/save`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ image_data: imageData })
+        });
+
+        const data = await res.json();
+        if (data.ok) {
+          state.overlayImagePath = data.overlay_image_path || "";
+          state.overlayUpdatedAt = data.overlay_updated_at || "";
+        }
+      } catch (error) {
+        console.error("Failed to save overlay image", error);
+      } finally {
+        overlaySaveInFlight = false;
+      }
+    }
+
+    function scheduleOverlaySave() {
+      if (!state.currentProjectName) return;
+      if (overlaySaveTimer) clearTimeout(overlaySaveTimer);
+      overlaySaveTimer = setTimeout(() => {
+        saveOverlayImageToProject();
+      }, 300);
     }
 
     async function fetchProjects() {
@@ -606,6 +1029,8 @@
     }
 
     async function openProject(projectName) {
+      stopGenerationPolling();
+
       const encoded = encodeURIComponent(projectName);
       const res = await fetch(`/api/projects/${encoded}`);
       const data = await res.json();
@@ -618,7 +1043,11 @@
       state.history = data.history || [];
       state.projects = data.projects || [];
       state.selectedPreviewIndex = 0;
-      els.generateStatus.textContent = "";
+      state.overlayImagePath = data.state.overlay_image_path || "";
+      state.overlayUpdatedAt = data.state.overlay_updated_at || "";
+
+      setStatus("Ready");
+      hideGenerationPanel();
 
       syncInputsFromState();
       showEditor();
@@ -632,14 +1061,16 @@
 
       const encoded = encodeURIComponent(projectName);
       const res = await fetch(`/api/projects/${encoded}`, { method: "DELETE" });
-
       const data = await res.json();
+
       state.projects = data.projects || [];
       renderProjects();
 
       if (state.currentProjectName === projectName) {
+        stopGenerationPolling();
         state.currentProjectName = null;
         state.history = [];
+        hideGenerationPanel();
         showHome();
       }
     }
@@ -668,13 +1099,15 @@
         state.urls = data.state.urls || [];
         state.clips = data.state.clips || [];
         syncInputsFromState();
+        await saveOverlayImageToProject();
+        setStatus("Saved");
       }
     }
 
     async function downloadClips() {
       if (!state.currentProjectName) return;
 
-      els.generateStatus.textContent = "Downloading clips... please wait.";
+      setStatus("Downloading clips...");
       await saveState();
 
       const encoded = encodeURIComponent(state.currentProjectName);
@@ -685,7 +1118,7 @@
       const data = await res.json();
 
       if (!data.ok) {
-        els.generateStatus.textContent = `Download failed: ${data.error || "unknown error"}`;
+        setStatus("Download failed", "error");
         return;
       }
 
@@ -694,14 +1127,13 @@
       renderClips();
       syncSelectedClipInputs();
       renderPreview();
-      els.generateStatus.textContent = "Download complete.";
+      setStatus("Download complete", "success");
     }
 
     async function loadClipsFromUrls() {
       if (!state.currentProjectName) return;
 
       await saveState();
-
       const encoded = encodeURIComponent(state.currentProjectName);
       const res = await fetch(`/api/projects/${encoded}/clips/load-from-urls`, {
         method: "POST"
@@ -714,6 +1146,7 @@
         renderClips();
         syncSelectedClipInputs();
         renderPreview();
+        setStatus("Clip list refreshed", "success");
       }
     }
 
@@ -734,6 +1167,7 @@
         renderClips();
         syncSelectedClipInputs();
         renderPreview();
+        setStatus("Clip order updated", "success");
       }
     }
 
@@ -754,6 +1188,130 @@
         renderClips();
         syncSelectedClipInputs();
         renderPreview();
+        setStatus("Clip deleted", "success");
+      }
+    }
+
+    async function generateIntroAudioForSelectedClip() {
+      if (!state.currentProjectName) return;
+
+      readStateFromInputs();
+
+      const clip = getSelectedClip();
+      if (!clip) {
+        els.introAudioStatus.textContent = "No clip selected.";
+        els.introAudioPlayer.style.display = "none";
+        return;
+      }
+
+      if (!clip.intro_text || !clip.intro_text.trim()) {
+        els.introAudioStatus.textContent = "Enter intro voice text first.";
+        els.introAudioPlayer.style.display = "none";
+        return;
+      }
+
+      els.generateIntroAudioBtn.disabled = true;
+      els.introAudioStatus.textContent = "Generating intro audio...";
+
+      try {
+        await saveState();
+
+        const encodedProject = encodeURIComponent(state.currentProjectName);
+        const res = await fetch(`/api/projects/${encodedProject}/clips/${state.selectedPreviewIndex}/generate-intro-audio`, {
+          method: "POST"
+        });
+
+        const data = await res.json();
+
+        if (!data.ok) {
+          els.introAudioStatus.textContent = data.error || "Failed to generate audio.";
+          els.introAudioPlayer.style.display = "none";
+          return;
+        }
+
+        state.clips = data.clips || state.clips;
+        syncSelectedClipInputs();
+        renderClips();
+
+        if (data.preview_url) {
+          els.introAudioPlayer.src = `${data.preview_url}?v=${Date.now()}`;
+          els.introAudioPlayer.style.display = "block";
+          els.introAudioPlayer.load();
+          els.introAudioStatus.textContent = "Intro audio generated.";
+          setStatus("Intro audio ready", "success");
+        } else {
+          els.introAudioStatus.textContent = "Audio generated, but preview URL was missing.";
+          els.introAudioPlayer.style.display = "none";
+        }
+      } catch (error) {
+        els.introAudioStatus.textContent = "Failed to generate audio.";
+        els.introAudioPlayer.style.display = "none";
+      } finally {
+        els.generateIntroAudioBtn.disabled = false;
+      }
+    }
+
+    async function pollGenerationStatus() {
+      if (!state.currentProjectName || !activeGenerationJobId) return;
+
+      try {
+        const encoded = encodeURIComponent(state.currentProjectName);
+        const res = await fetch(`/api/projects/${encoded}/generate/status/${activeGenerationJobId}`);
+        const data = await res.json();
+
+        if (!data.ok) {
+          stopGenerationPolling();
+          els.generateBtn.disabled = false;
+          setGenerationProgress(100, "Failed", data.error || "Generation status failed.");
+          setStatus("Generation status failed", "error");
+          return;
+        }
+
+        state.history = data.history || [];
+        renderHistory();
+
+        const progress = data.progress ?? (data.status === "ready" ? 100 : data.status === "queued" ? 5 : 50);
+        const progressLabel = data.progress_label || (data.status === "queued" ? "Queued" : data.status === "processing" ? "Generating" : data.status);
+        const message = data.message || "Working...";
+        setGenerationProgress(progress, progressLabel, message);
+
+        if (data.started_at_ts && !generationElapsedTimer) {
+          startElapsedTimer(data.started_at_ts);
+        }
+
+        if (data.status === "queued") {
+          startStatusAnimation("Queued");
+          return;
+        }
+
+        if (data.status === "processing") {
+          startStatusAnimation("Generating");
+          return;
+        }
+
+        stopGenerationPolling();
+        els.generateBtn.disabled = false;
+
+        if (data.status === "ready" && data.ok) {
+          if (data.started_at_ts) {
+            const endTs = data.finished_at_ts || (Date.now() / 1000);
+            els.generationElapsed.textContent = formatElapsed(endTs - data.started_at_ts);
+          }
+          setGenerationProgress(100, "Done", data.message || "Generation complete.");
+          setStatus("Generation complete", "success");
+        } else {
+          if (data.started_at_ts) {
+            const endTs = data.finished_at_ts || (Date.now() / 1000);
+            els.generationElapsed.textContent = formatElapsed(endTs - data.started_at_ts);
+          }
+          setGenerationProgress(100, "Failed", data.message || "Generation failed.");
+          setStatus("Generation failed", "error");
+        }
+      } catch (error) {
+        stopGenerationPolling();
+        els.generateBtn.disabled = false;
+        setGenerationProgress(100, "Failed", "Unable to fetch generation status.");
+        setStatus("Generation failed", "error");
       }
     }
 
@@ -761,29 +1319,45 @@
       if (!state.currentProjectName) return;
 
       els.generateBtn.disabled = true;
-      els.generateStatus.textContent = "Generating... please wait.";
+      startStatusAnimation("Starting");
+      setGenerationProgress(0, "Starting", "Preparing generation...");
+      startElapsedTimer();
 
       try {
         await saveState();
 
         const encoded = encodeURIComponent(state.currentProjectName);
-        const res = await fetch(`/api/projects/${encoded}/generate`, {
+        const res = await fetch(`/api/projects/${encoded}/generate/start`, {
           method: "POST"
         });
 
         const data = await res.json();
-        state.history = data.history || [];
+
+        if (!data.ok) {
+          els.generateBtn.disabled = false;
+          stopElapsedTimer();
+          setGenerationProgress(100, "Failed", data.error || "Generation failed");
+          setStatus(data.error || "Generation failed", "error");
+          return;
+        }
+
+        activeGenerationJobId = data.job_id;
+        state.history = data.history || state.history;
         renderHistory();
 
-        if (data.ok) {
-          els.generateStatus.textContent = "Generation complete.";
-        } else {
-          els.generateStatus.textContent = `Generation failed: ${data.result || data.error || "unknown error"}`;
+        setGenerationProgress(data.progress || 0, data.progress_label || "Queued", data.message || "Generation started.");
+
+        if (generationPollTimer) {
+          clearInterval(generationPollTimer);
         }
+
+        generationPollTimer = setInterval(pollGenerationStatus, 1500);
+        await pollGenerationStatus();
       } catch (error) {
-        els.generateStatus.textContent = `Generation failed: ${error}`;
-      } finally {
+        stopGenerationPolling();
         els.generateBtn.disabled = false;
+        setGenerationProgress(100, "Failed", "Unexpected error while generating.");
+        setStatus("Generation failed", "error");
       }
     }
 
@@ -799,6 +1373,7 @@
       if (data.ok) {
         state.history = data.history || [];
         renderHistory();
+        setStatus("History item deleted", "success");
       }
     }
 
@@ -806,22 +1381,28 @@
       state.title_blocks.push({
         text: "New Word",
         font_family: FONT_OPTIONS[0],
-        font_size: 40,
+        font_size: 120,
         color: "#ffffff",
         stroke_color: "#000000",
         stroke_width: 2
       });
       renderTitleBlocks();
       renderPreview();
+      setStatus("Title block added", "success");
     }
 
     els.newProjectBtn.addEventListener("click", createProject);
-    els.backBtn.addEventListener("click", showHome);
+    els.backBtn.addEventListener("click", () => {
+      stopGenerationPolling();
+      hideGenerationPanel();
+      showHome();
+    });
     els.saveBtn.addEventListener("click", saveState);
     els.downloadBtn.addEventListener("click", downloadClips);
     els.loadClipsBtn.addEventListener("click", loadClipsFromUrls);
     els.generateBtn.addEventListener("click", generateProject);
     els.addTitleBlockBtn.addEventListener("click", addTitleBlock);
+    els.generateIntroAudioBtn.addEventListener("click", generateIntroAudioForSelectedClip);
 
     els.backgroundColor.addEventListener("input", () => {
       readStateFromInputs();
@@ -852,6 +1433,23 @@
     els.rankStrokeWidth.addEventListener("input", () => {
       readStateFromInputs();
       renderPreview();
+    });
+
+    els.introText.addEventListener("input", () => {
+      readStateFromInputs();
+      renderClips();
+      syncSelectedClipInputs();
+    });
+
+    els.introTtsPath.addEventListener("input", () => {
+      readStateFromInputs();
+      renderClips();
+      syncSelectedClipInputs();
+    });
+
+    els.duckOriginalAudio.addEventListener("change", () => {
+      readStateFromInputs();
+      renderClips();
     });
 
     fetchProjects();

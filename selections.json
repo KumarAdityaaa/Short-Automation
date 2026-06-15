@@ -1,6 +1,59 @@
 {
   "selected_clips": [
-    "input_clips\\clip_01.mp4",
-    "input_clips\\clip_02.mp4"
+    {
+      "clip_path": "projects\\TOP 5 FUNNY ANIMAL MOMENTS\\input_clips\\clip_01.mp4",
+      "intro_text": "",
+      "intro_tts_path": "",
+      "duck_original_audio": true,
+      "rank_text": "1.",
+      "rank_color": "#ffe600",
+      "rank_stroke_color": "#000000",
+      "rank_stroke_width": 2,
+      "rank_font_size": 58
+    },
+    {
+      "clip_path": "projects\\TOP 5 FUNNY ANIMAL MOMENTS\\input_clips\\clip_02.mp4",
+      "intro_text": "",
+      "intro_tts_path": "",
+      "duck_original_audio": true,
+      "rank_text": "2.",
+      "rank_color": "#ffe600",
+      "rank_stroke_color": "#000000",
+      "rank_stroke_width": 2,
+      "rank_font_size": 58
+    },
+    {
+      "clip_path": "projects\\TOP 5 FUNNY ANIMAL MOMENTS\\input_clips\\clip_03.mp4",
+      "intro_text": "",
+      "intro_tts_path": "",
+      "duck_original_audio": true,
+      "rank_text": "3.",
+      "rank_color": "#ffe600",
+      "rank_stroke_color": "#000000",
+      "rank_stroke_width": 2,
+      "rank_font_size": 58
+    },
+    {
+      "clip_path": "projects\\TOP 5 FUNNY ANIMAL MOMENTS\\input_clips\\clip_04.mp4",
+      "intro_text": "",
+      "intro_tts_path": "",
+      "duck_original_audio": true,
+      "rank_text": "4.",
+      "rank_color": "#ffe600",
+      "rank_stroke_color": "#000000",
+      "rank_stroke_width": 2,
+      "rank_font_size": 58
+    },
+    {
+      "clip_path": "projects\\TOP 5 FUNNY ANIMAL MOMENTS\\input_clips\\clip_05.mp4",
+      "intro_text": "",
+      "intro_tts_path": "",
+      "duck_original_audio": true,
+      "rank_text": "5.",
+      "rank_color": "#ffe600",
+      "rank_stroke_color": "#000000",
+      "rank_stroke_width": 2,
+      "rank_font_size": 58
+    }
   ]
 }

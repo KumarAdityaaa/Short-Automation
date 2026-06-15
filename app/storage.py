@@ -4,53 +4,20 @@ import re
 import shutil
 from typing import Any
 
-
 DATA_DIR = "data"
 GENERATED_DIR = "generated"
 PROJECTS_ROOT = "projects"
 
-
-DEFAULT_TITLE_BLOCKS = [
-    {
-        "text": "Ranking",
-        "font_family": "Impact, Arial Black, sans-serif",
-        "font_size": 40,
-        "color": "#ffffff",
-        "stroke_color": "#000000",
-        "stroke_width": 2
-    },
-    {
-        "text": "Funniest",
-        "font_family": "Impact, Arial Black, sans-serif",
-        "font_size": 40,
-        "color": "#ff2b2b",
-        "stroke_color": "#000000",
-        "stroke_width": 2
-    },
-    {
-        "text": "Instant Karma",
-        "font_family": "Impact, Arial Black, sans-serif",
-        "font_size": 40,
-        "color": "#ffe600",
-        "stroke_color": "#000000",
-        "stroke_width": 2
-    },
-    {
-        "text": "Moments",
-        "font_family": "Impact, Arial Black, sans-serif",
-        "font_size": 40,
-        "color": "#ffffff",
-        "stroke_color": "#000000",
-        "stroke_width": 2
-    }
-]
-
+DEFAULT_TITLE_BLOCKS = []
 
 DEFAULT_PROJECT_STATE = {
-    "title_blocks": DEFAULT_TITLE_BLOCKS,
+    "title_text": "",
+    "title_blocks": [],
     "background_color": "#000000",
     "urls": [],
-    "clips": []
+    "clips": [],
+    "overlay_image_path": "",
+    "overlay_updated_at": ""
 }
 
 
@@ -119,9 +86,11 @@ def ensure_project_structure(project_name: str) -> None:
         write_json(project_history_path(safe_name), [])
 
 
+
+
 def normalize_title_blocks(title_blocks: Any) -> list[dict]:
-    if not isinstance(title_blocks, list) or not title_blocks:
-        return json.loads(json.dumps(DEFAULT_TITLE_BLOCKS))
+    if not isinstance(title_blocks, list):
+        return []
 
     normalized = []
     for block in title_blocks:
@@ -138,7 +107,7 @@ def normalize_title_blocks(title_blocks: Any) -> list[dict]:
             }
         )
 
-    return normalized or json.loads(json.dumps(DEFAULT_TITLE_BLOCKS))
+    return normalized
 
 
 def ensure_clip_defaults(clip: dict, index: int) -> dict:
@@ -153,6 +122,9 @@ def ensure_clip_defaults(clip: dict, index: int) -> dict:
         "rank_stroke_color": clip.get("rank_stroke_color", "#000000"),
         "rank_stroke_width": int(clip.get("rank_stroke_width", 2)),
         "rank_font_size": int(clip.get("rank_font_size", 58)),
+        "intro_text": str(clip.get("intro_text", "") or ""),
+        "intro_tts_path": str(clip.get("intro_tts_path", "") or ""),
+        "duck_original_audio": bool(clip.get("duck_original_audio", True)),
     }
 
 
@@ -207,18 +179,18 @@ def build_project_clips_with_preview(project_name: str, urls: list[str], existin
 
         expected_base = f"clip_{i + 1:02d}"
         if os.path.isdir(input_dir):
-          for file_name in os.listdir(input_dir):
-              file_root, _ = os.path.splitext(file_name)
-              if file_root == expected_base:
-                  local_filename = file_name
-                  preview_url = f"/api/projects/{sanitize_project_name(project_name)}/files/input_clips/{file_name}"
-                  break
+            for file_name in os.listdir(input_dir):
+                file_root, _ = os.path.splitext(file_name)
+                if file_root == expected_base:
+                    local_filename = file_name
+                    preview_url = f"/api/projects/{sanitize_project_name(project_name)}/files/input_clips/{file_name}"
+                    break
 
         existing = existing_clips[i] if i < len(existing_clips) and isinstance(existing_clips[i], dict) else {}
 
         clip = ensure_clip_defaults(
             {
-                "name": f"Clip {i + 1}",
+                "name": existing.get("name", f"Clip {i + 1}"),
                 "url": url,
                 "local_file": local_filename,
                 "preview_url": preview_url,
@@ -227,6 +199,9 @@ def build_project_clips_with_preview(project_name: str, urls: list[str], existin
                 "rank_stroke_color": existing.get("rank_stroke_color", "#000000"),
                 "rank_stroke_width": existing.get("rank_stroke_width", 2),
                 "rank_font_size": existing.get("rank_font_size", 58),
+                "intro_text": existing.get("intro_text", ""),
+                "intro_tts_path": existing.get("intro_tts_path", ""),
+                "duck_original_audio": existing.get("duck_original_audio", True),
             },
             i
         )
@@ -246,7 +221,10 @@ def load_project_state(project_name: str) -> dict:
     merged.update(data)
     merged["project_name"] = safe_name
 
+    merged["title_text"] = str(merged.get("title_text", "") or "")
     merged["title_blocks"] = normalize_title_blocks(merged.get("title_blocks", []))
+    merged["overlay_image_path"] = str(merged.get("overlay_image_path", "") or "")
+    merged["overlay_updated_at"] = str(merged.get("overlay_updated_at", "") or "")
 
     urls = merged.get("urls", [])
     clips = merged.get("clips", [])
@@ -280,7 +258,10 @@ def save_project_state(project_name: str, state: dict) -> None:
     merged = json.loads(json.dumps(DEFAULT_PROJECT_STATE))
     merged.update(state)
     merged["project_name"] = safe_name
+    merged["title_text"] = str(merged.get("title_text", "") or "")
     merged["title_blocks"] = normalize_title_blocks(merged.get("title_blocks", []))
+    merged["overlay_image_path"] = str(merged.get("overlay_image_path", "") or "")
+    merged["overlay_updated_at"] = str(merged.get("overlay_updated_at", "") or "")
 
     clips = merged.get("clips", [])
     if not isinstance(clips, list):
@@ -363,7 +344,7 @@ def move_clip(project_name: str, index: int, direction: str) -> bool:
     if direction == "up" and index > 0:
         clips[index - 1], clips[index] = clips[index], clips[index - 1]
     elif direction == "down" and index < len(clips) - 1:
-        clips[index + 1], clips[index] = clips[index], clips[index + 1]
+        clips[index + 1], clips[index] = clips[index + 1], clips[index]
     else:
         return False
 

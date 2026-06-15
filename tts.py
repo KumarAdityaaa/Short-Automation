@@ -1,78 +1,38 @@
 import os
 import soundfile as sf
 
-
 TTS_VOICE = "af_heart"
 
-
-def get_voice_lines(count: int) -> dict:
+def generate_custom_tts(text: str, out_path: str) -> str:
     """
-    Returns a dict mapping rank number to the spoken line text.
-    e.g. {5: "Number 5", 4: "Number 4", ..., 1: "Number 1!"}
+    Generate a single TTS wav file for an arbitrary text line.
+    Returns the output path. Uses simple caching: if the file
+    already exists and is non-empty, it is reused.
     """
-    lines = {}
-    for i in range(count, 0, -1):
-        if i == 1:
-            lines[i] = "Number 1!"
-        else:
-            lines[i] = f"Number {i}"
-    return lines
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
 
+    if os.path.exists(out_path) and os.path.getsize(out_path) > 0:
+        print(f"[CACHE] Custom TTS exists: {out_path}")
+        return out_path
 
-def generate_tts_files(count: int, cache_dir: str) -> dict:
-    """
-    Generates a .wav file for each ranking position voice line.
-    Skips generation if the file already exists (cache).
-    Returns dict mapping rank number to wav file path.
-    """
-    os.makedirs(cache_dir, exist_ok=True)
+    if not text or not text.strip():
+        raise ValueError("Custom TTS text is empty")
 
-    # Import here so startup is fast if TTS is not needed
     from kokoro import KPipeline
 
-    print("[INFO] Loading Kokoro TTS model (first run downloads ~500MB)...")
-    pipeline = KPipeline(lang_code="a")  # "a" = American English
+    print("[INFO] Loading Kokoro TTS model for custom line...")
+    pipeline = KPipeline(lang_code="a")  # American English
 
-    voice_lines = get_voice_lines(count)
-    output_paths = {}
+    samples = []
+    for result in pipeline(text, voice=TTS_VOICE):
+        if result.audio is not None:
+            samples.append(result.audio)
 
-    for rank, text in voice_lines.items():
-        out_path = os.path.join(cache_dir, f"number_{rank}.wav")
+    if not samples:
+        raise RuntimeError(f"TTS produced no audio for custom text: {text!r}")
 
-        if os.path.exists(out_path):
-            print(f"[CACHE] {out_path} already exists, skipping.")
-            output_paths[rank] = out_path
-            continue
-
-        print(f"[INFO] Generating TTS: '{text}' -> {out_path}")
-
-        samples = []
-        for result in pipeline(text, voice=TTS_VOICE):
-            if result.audio is not None:
-                samples.append(result.audio)
-
-        if not samples:
-            print(f"[ERROR] TTS produced no audio for: '{text}'")
-            continue
-
-        import numpy as np
-        audio = np.concatenate(samples)
-        sf.write(out_path, audio, 24000)
-        print(f"[OK] Saved: {out_path}")
-        output_paths[rank] = out_path
-
-    return output_paths
-
-
-def verify_tts_files(output_paths: dict, count: int) -> bool:
-    """Check all expected files exist and are non-empty."""
-    for rank in range(count, 0, -1):
-        path = output_paths.get(rank)
-        if not path or not os.path.exists(path):
-            print(f"[ERROR] Missing TTS file for rank {rank}")
-            return False
-        if os.path.getsize(path) == 0:
-            print(f"[ERROR] TTS file is empty for rank {rank}: {path}")
-            return False
-    print(f"[OK] All {count} TTS voice files verified.")
-    return True
+    import numpy as np
+    audio = np.concatenate(samples)
+    sf.write(out_path, audio, 24000)
+    print(f"[OK] Custom TTS saved: {out_path}")
+    return out_path

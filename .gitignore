@@ -32,7 +32,7 @@ projects/*/output/
 # Optional generated artifacts
 generated/
 output/
-
+projects/
 # Keep project metadata/history, ignore only heavy media if desired
 # projects/*/project.json
 # projects/*/history.json

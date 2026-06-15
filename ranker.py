@@ -1,15 +1,16 @@
-import os
 import json
+import os
 import subprocess
-
 
 SELECTIONS_PATH = "selections.json"
 
 
-def get_video_info(filepath: str) -> dict:
+def get_video_info(filepath: str, ffprobe_path: str | None = None) -> dict:
     """Use ffprobe to get duration and file size of a video."""
+    probe_bin = ffprobe_path or "ffprobe"
+
     cmd = [
-        "ffprobe",
+        probe_bin,
         "-v", "quiet",
         "-print_format", "json",
         "-show_format",
@@ -41,10 +42,10 @@ def list_clips(input_dir: str) -> list:
     return [os.path.join(input_dir, f) for f in files]
 
 
-def run_ranker(input_dir: str) -> list:
+def run_ranker(input_dir: str, ffprobe_path: str | None = None) -> list:
     """
     Show all clips with metadata, let user pick and order them.
-    Returns ordered list of selected file paths.
+    Returns ordered list of selected clip dicts.
     """
     clips = list_clips(input_dir)
 
@@ -54,7 +55,7 @@ def run_ranker(input_dir: str) -> list:
 
     print("\n=== Available Clips ===\n")
     for i, path in enumerate(clips):
-        info = get_video_info(path)
+        info = get_video_info(path, ffprobe_path=ffprobe_path)
         print(f"  [{i+1}] {os.path.basename(path)}")
         print(f"       Duration: {info['duration']}  |  Size: {info['size_mb']}")
 
@@ -88,12 +89,22 @@ def run_ranker(input_dir: str) -> list:
         print(f"  #{rank} -> {os.path.basename(path)}")
         rank -= 1
 
-    save_selections(ordered_paths)
-    return ordered_paths
+    selected_clips = [
+        {
+            "clip_path": path,
+            "intro_text": "",
+            "intro_tts_path": "",
+            "duck_original_audio": True,
+        }
+        for path in ordered_paths
+    ]
+
+    save_selections(selected_clips)
+    return selected_clips
 
 
-def save_selections(ordered_paths: list) -> None:
-    data = {"selected_clips": ordered_paths}
+def save_selections(selected_clips: list) -> None:
+    data = {"selected_clips": selected_clips}
     with open(SELECTIONS_PATH, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
     print(f"\n[OK] Selection saved to {SELECTIONS_PATH}")
@@ -103,6 +114,30 @@ def load_selections() -> list:
     if not os.path.exists(SELECTIONS_PATH):
         print(f"[ERROR] {SELECTIONS_PATH} not found. Run the ranker first.")
         return []
+
     with open(SELECTIONS_PATH, "r", encoding="utf-8") as f:
         data = json.load(f)
-    return data.get("selected_clips", [])
+
+    selected_clips = data.get("selected_clips", [])
+
+    if not isinstance(selected_clips, list):
+        return []
+
+    normalized = []
+    for item in selected_clips:
+        if isinstance(item, str):
+            normalized.append({
+                "clip_path": item,
+                "intro_text": "",
+                "intro_tts_path": "",
+                "duck_original_audio": True,
+            })
+        elif isinstance(item, dict):
+            normalized.append({
+                "clip_path": item.get("clip_path") or item.get("path") or "",
+                "intro_text": item.get("intro_text", ""),
+                "intro_tts_path": item.get("intro_tts_path", ""),
+                "duck_original_audio": item.get("duck_original_audio", True),
+            })
+
+    return normalized
