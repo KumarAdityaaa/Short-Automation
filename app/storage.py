@@ -3,6 +3,7 @@ import os
 import re
 import shutil
 from typing import Any
+import re as _re
 
 DATA_DIR = "data"
 GENERATED_DIR = "generated"
@@ -117,7 +118,7 @@ def ensure_clip_defaults(clip: dict, index: int) -> dict:
         "url": clip.get("url"),
         "local_file": clip.get("local_file"),
         "preview_url": clip.get("preview_url"),
-        "rank_text": clip.get("rank_text", f"{index + 1}."),
+        "rank_text": clip.get("rank_text", ""),        # ← no longer force-overrides
         "rank_color": clip.get("rank_color", "#ffe600"),
         "rank_stroke_color": clip.get("rank_stroke_color", "#000000"),
         "rank_stroke_width": int(clip.get("rank_stroke_width", 2)),
@@ -194,7 +195,7 @@ def build_project_clips_with_preview(project_name: str, urls: list[str], existin
                 "url": url,
                 "local_file": local_filename,
                 "preview_url": preview_url,
-                "rank_text": existing.get("rank_text", f"{i + 1}."),
+                "rank_text": existing.get("rank_text", ""),
                 "rank_color": existing.get("rank_color", "#ffe600"),
                 "rank_stroke_color": existing.get("rank_stroke_color", "#000000"),
                 "rank_stroke_width": existing.get("rank_stroke_width", 2),
@@ -238,14 +239,17 @@ def load_project_state(project_name: str) -> dict:
     normalized_clips = []
     for i, clip in enumerate(clips):
         normalized = ensure_clip_defaults(clip, i)
+
+        stored_rank = (normalized.get("rank_text") or "").strip()
+        if re.fullmatch(r"\d+\.", stored_rank):
+            normalized["rank_text"] = ""
+
         local_file = normalized.get("local_file")
         if local_file:
             local_path = os.path.join(project_input_clips_path(safe_name), local_file)
             normalized["preview_url"] = f"/api/projects/{safe_name}/files/input_clips/{local_file}" if os.path.exists(local_path) else None
-        normalized_clips.append(normalized)
 
-    merged["urls"] = urls
-    merged["clips"] = normalized_clips
+        normalized_clips.append(normalized)
     return merged
 
 
@@ -267,7 +271,17 @@ def save_project_state(project_name: str, state: dict) -> None:
     if not isinstance(clips, list):
         clips = []
 
-    merged["clips"] = [ensure_clip_defaults(c, i) for i, c in enumerate(clips)]
+    cleaned_clips = []
+    for i, c in enumerate(clips):
+        normalized = ensure_clip_defaults(c, i)
+
+        stored_rank = (normalized.get("rank_text") or "").strip()
+        if re.fullmatch(r"\d+\.", stored_rank):
+            normalized["rank_text"] = ""
+
+        cleaned_clips.append(normalized)
+
+    merged["clips"] = cleaned_clips
 
     write_json(project_json_path(safe_name), merged)
 
@@ -344,7 +358,7 @@ def move_clip(project_name: str, index: int, direction: str) -> bool:
     if direction == "up" and index > 0:
         clips[index - 1], clips[index] = clips[index], clips[index - 1]
     elif direction == "down" and index < len(clips) - 1:
-        clips[index + 1], clips[index] = clips[index + 1], clips[index]
+        clips[index], clips[index + 1] = clips[index + 1], clips[index]  # ← fixed swap
     else:
         return False
 

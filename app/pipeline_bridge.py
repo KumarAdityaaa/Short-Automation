@@ -3,8 +3,7 @@ import json
 import os
 import subprocess
 import sys
-
-
+import re
 from app.storage import (
     sanitize_project_name,
     project_output_path,
@@ -12,22 +11,32 @@ from app.storage import (
     project_folder_path,
 )
 
-
-CONFIG_PATH = "config.json"
-SELECTIONS_PATH = "selections.json"
 MAIN_SCRIPT = "main.py"
 
 
-def load_config() -> dict:
-    if not os.path.exists(CONFIG_PATH):
-        raise FileNotFoundError("config.json not found")
+def project_config_path(project_name: str) -> str:
+    safe_name = sanitize_project_name(project_name)
+    return os.path.join(project_folder_path(safe_name), "config.json")
 
-    with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+
+def project_selections_path(project_name: str) -> str:
+    safe_name = sanitize_project_name(project_name)
+    return os.path.join(project_folder_path(safe_name), "selections.json")
+
+
+def load_config(project_name: str) -> dict:
+    path = project_config_path(project_name)
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"Project config not found: {path}")
+
+    with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
-def save_config(config: dict) -> None:
-    with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+def save_config(project_name: str, config: dict) -> None:
+    path = project_config_path(project_name)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
         json.dump(config, f, indent=2)
 
 
@@ -37,9 +46,28 @@ def project_tts_cache_path(project_name: str) -> str:
 
 
 def update_config_from_project_state(project_name: str, state: dict) -> dict:
-    config = load_config()
-
     safe_project = sanitize_project_name(project_name)
+    config_path = project_config_path(safe_project)
+
+    if os.path.exists(config_path):
+        with open(config_path, "r", encoding="utf-8") as f:
+            config = json.load(f)
+    else:
+        config = {
+            "ffmpeg_path": r"C:\ffmpeg-8.1.1-essentials_build\bin\ffmpeg.exe",
+            "ffprobe_path": r"C:\ffmpeg-8.1.1-essentials_build\bin\ffprobe.exe",
+            "compose": {
+                "enabled": True,
+                "output_name": "final_short.mp4"
+            },
+            "video": {
+                "resolution": [1080, 1920],
+                "fps": 30
+            },
+            "ranking": {},
+            "overlay": {}
+        }
+
     urls = state.get("urls", [])
     title_text = state.get("title_text", "") or ""
     raw_title_blocks = state.get("title_blocks", []) or []
@@ -74,10 +102,10 @@ def update_config_from_project_state(project_name: str, state: dict) -> dict:
     config["tts_cache_dir"] = tts_cache_dir
     config["urls"] = urls
     config["overlay"] = {
-    "enabled": bool(overlay_image_path and os.path.exists(overlay_image_path)),
-    "image_path": overlay_image_path,
-    "updated_at": overlay_updated_at,
-    }   
+        "enabled": bool(overlay_image_path and os.path.exists(overlay_image_path)),
+        "image_path": overlay_image_path,
+        "updated_at": overlay_updated_at,
+    }
 
     if "ranking" not in config or not isinstance(config["ranking"], dict):
         config["ranking"] = {}
@@ -86,7 +114,7 @@ def update_config_from_project_state(project_name: str, state: dict) -> dict:
     config["ranking"]["title_blocks"] = normalized_title_blocks
     config["ranking"]["count"] = len(clips) if clips else config["ranking"].get("count", 0)
 
-    save_config(config)
+    save_config(safe_project, config)
     return config
 
 
@@ -114,13 +142,19 @@ def download_project_clips(project_name: str, urls: list[str]) -> tuple[bool, st
     for i, url in enumerate(urls, start=1):
         output_template = os.path.join(input_dir, f"clip_{i:02d}.%(ext)s")
         cookies_path = r"C:\Users\kumar\Downloads\cookies.txt"
+
         cmd = [
             sys.executable,
             "-m",
             "yt_dlp",
             "--js-runtimes", r"deno:C:\Users\kumar\.deno\bin\deno.exe",
             "-f", "18/best",
-            "--cookies", cookies_path,
+        ]
+
+        if os.path.exists(cookies_path):
+            cmd += ["--cookies", cookies_path]
+
+        cmd += [
             "-o",
             output_template,
             url,
@@ -180,31 +214,45 @@ def resolve_project_clip_path(project_name: str, clip: dict, index: int) -> str:
 
 def write_selections_from_project_state(project_name: str, state: dict) -> None:
     clips = state.get("clips", []) or []
+    total_clips = len(clips)
 
     selected_clips = []
     for index, clip in enumerate(clips):
         clip_path = resolve_project_clip_path(project_name, clip, index)
+
+        # rank_num matches what composer.py uses: highest rank = first clip
+        rank_num = total_clips - index
+        stored_rank_text = (clip.get("rank_text") or "").strip()
+        if stored_rank_text and not re.fullmatch(r"\d+\.", stored_rank_text):
+            rank_text = stored_rank_text
+        else:
+            rank_text = f"{rank_num}."
 
         selected_clips.append({
             "clip_path": clip_path,
             "intro_text": clip.get("intro_text", "") or "",
             "intro_tts_path": clip.get("intro_tts_path", "") or "",
             "duck_original_audio": bool(clip.get("duck_original_audio", True)),
-            "rank_text": clip.get("rank_text", "") or "",
+            "rank_text": rank_text,
             "rank_color": clip.get("rank_color", "#ffe600") or "#ffe600",
             "rank_stroke_color": clip.get("rank_stroke_color", "#000000") or "#000000",
             "rank_stroke_width": int(clip.get("rank_stroke_width", 2) or 2),
             "rank_font_size": int(clip.get("rank_font_size", 58) or 58),
         })
 
-    with open(SELECTIONS_PATH, "w", encoding="utf-8") as f:
+    selections_path = project_selections_path(project_name)
+    os.makedirs(os.path.dirname(selections_path), exist_ok=True)
+
+    with open(selections_path, "w", encoding="utf-8") as f:
         json.dump({"selected_clips": selected_clips}, f, indent=2)
 
 
-def run_main_py() -> tuple[bool, str]:
+def run_main_py(project_name: str) -> tuple[bool, str]:
+    config_path = project_config_path(project_name)
+
     try:
         result = subprocess.run(
-            [sys.executable, MAIN_SCRIPT],
+            [sys.executable, MAIN_SCRIPT, config_path],
             capture_output=True,
             text=True,
             check=False
@@ -224,7 +272,7 @@ def run_full_pipeline_for_project(project_name: str, state: dict) -> tuple[bool,
     config = update_config_from_project_state(project_name, state)
     write_selections_from_project_state(project_name, state)
 
-    ok, message = run_main_py()
+    ok, message = run_main_py(project_name)
     if not ok:
         return False, message
 

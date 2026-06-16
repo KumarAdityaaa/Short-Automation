@@ -4,7 +4,8 @@ import sys
 
 from composer import compose
 
-CONFIG_PATH = "config.json"
+
+DEFAULT_CONFIG_PATH = "config.json"
 
 
 def load_config(path: str) -> dict:
@@ -16,7 +17,7 @@ def load_config(path: str) -> dict:
         try:
             config = json.load(f)
         except json.JSONDecodeError as e:
-            print(f"[ERROR] config.json is not valid JSON: {e}")
+            print(f"[ERROR] config file is not valid JSON: {e}")
             sys.exit(1)
 
     return config
@@ -37,7 +38,7 @@ def validate_config(config: dict) -> None:
 
     for key in required_keys:
         if key not in config:
-            print(f"[ERROR] Missing required key in config.json: '{key}'")
+            print(f"[ERROR] Missing required key in config: '{key}'")
             sys.exit(1)
 
     for key in ["ffmpeg_path", "ffprobe_path"]:
@@ -45,7 +46,7 @@ def validate_config(config: dict) -> None:
             print(f"[ERROR] File not found: {config[key]}")
             sys.exit(1)
 
-    print("[OK] config.json loaded and validated.")
+    print("[OK] Config loaded and validated.")
 
 
 def ensure_dirs(config: dict) -> None:
@@ -71,10 +72,17 @@ def check_ffmpeg_tools(config: dict) -> None:
     print(f"[OK] ffprobe executable found: {ffprobe_path}")
 
 
+def resolve_config_path() -> str:
+    if len(sys.argv) > 1 and sys.argv[1].strip():
+        return sys.argv[1].strip()
+    return DEFAULT_CONFIG_PATH
+
+
 def main():
     print("=== Shorts Pipeline ===")
 
-    config = load_config(CONFIG_PATH)
+    config_path = resolve_config_path()
+    config = load_config(config_path)
     validate_config(config)
     ensure_dirs(config)
     check_ffmpeg_tools(config)
@@ -83,7 +91,10 @@ def main():
         print("[INFO] Composition disabled in config.")
         return
 
-    compose(config)
+    project_dir = os.path.dirname(os.path.abspath(config_path))
+    selections_path = os.path.join(project_dir, "selections.json")
+
+    compose(config, selections_path=selections_path)
 
 
 if __name__ == "__main__":

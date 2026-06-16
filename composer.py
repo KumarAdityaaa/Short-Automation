@@ -206,7 +206,8 @@ def build_rank_drawtext(clip: dict, rank_num: int) -> str:
     rank_color = hex_to_ffmpeg_color(clip.get("rank_color"), "#ffe600")
     rank_stroke_color = hex_to_ffmpeg_color(clip.get("rank_stroke_color"), "#000000")
     rank_stroke_width = int(clip.get("rank_stroke_width", 2))
-    rank_font_size = 150
+    ui_rank_font_size = int(clip.get("rank_font_size", 58) or 58)
+    rank_font_size = max(12, int(round(150 * (ui_rank_font_size / 58))))
 
     print("[DEBUG] build_rank_drawtext rank_font_size =", rank_font_size)
 
@@ -253,11 +254,9 @@ def build_video_filter(
         f"pad={width}:{height}:(ow-iw)/2:(oh-ih)/2:black"
     )
 
-    # If PNG exists, we’ll use it for title only and draw rank via drawtext later.
     if overlay_image_path and os.path.exists(overlay_image_path):
         return base, True
 
-    # No PNG: fall back to pure drawtext for both title + rank
     overlays: list[str] = []
     title_overlay = build_title_drawtext(title_blocks)
     if title_overlay:
@@ -345,10 +344,6 @@ def make_segment(
         "-i", input_path,
     ]
 
-    # Input ordering:
-    # 0: main video
-    # 1: overlay PNG (if any)
-    # 2 or 1: TTS audio (depending on overlay)
     if use_overlay_image:
         cmd += ["-i", overlay_image_path]
 
@@ -365,7 +360,6 @@ def make_segment(
         tts_input_index=tts_input_index,
     )
 
-    # Build video filter_complex
     if use_overlay_image:
         rank_expr = build_rank_drawtext(clip, rank_num)
 
@@ -460,7 +454,7 @@ def concat_segments(ffmpeg_path: str, segment_paths: list[str], output_path: str
         raise RuntimeError("Failed to concat final short.")
 
 
-def compose(config: dict) -> None:
+def compose(config: dict, selections_path: str = "selections.json") -> None:
     ffmpeg_path = config["ffmpeg_path"]
     ffprobe_path = config["ffprobe_path"]
     output_dir = config["output_dir"]
@@ -479,9 +473,9 @@ def compose(config: dict) -> None:
     else:
         print("[INFO] No overlay image found. Falling back to drawtext rendering.")
 
-    selected_clips = load_selections()
+    selected_clips = load_selections(selections_path)
     if not selected_clips:
-        raise RuntimeError("No selections found in selections.json.")
+        raise RuntimeError(f"No selections found in {selections_path}.")
 
     normalized_clips: list[dict] = []
     for item in selected_clips:
@@ -510,7 +504,7 @@ def compose(config: dict) -> None:
                 "rank_font_size": item.get("rank_font_size", 58),
             })
         else:
-            raise RuntimeError(f"Unsupported clip entry in selections.json: {item}")
+            raise RuntimeError(f"Unsupported clip entry in selections file: {item}")
 
     for clip in normalized_clips:
         clip_path = clip["clip_path"]

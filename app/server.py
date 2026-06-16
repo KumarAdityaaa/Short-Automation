@@ -13,7 +13,12 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
 
-from app.pipeline_bridge import run_full_pipeline_for_project, download_project_clips
+from app.pipeline_bridge import (
+    run_full_pipeline_for_project,
+    download_project_clips,
+    update_config_from_project_state,
+    write_selections_from_project_state,
+)
 from app.storage import (
     ensure_data_files,
     list_projects,
@@ -346,7 +351,14 @@ def save_state_api(payload: SaveStatePayload):
     }
 
     save_project_state(payload.project_name, new_state)
-    return {"ok": True, "state": load_project_state(payload.project_name)}
+    saved_state = load_project_state(payload.project_name)
+
+    # keep selections.json in sync with every save
+    clips = saved_state.get("clips", [])
+    if clips:
+        write_selections_from_project_state(payload.project_name, saved_state)
+
+    return {"ok": True, "state": saved_state}
 
 
 @app.post("/api/projects/{project_name}/download-clips")
@@ -366,6 +378,10 @@ def download_clips_for_project(project_name: str):
     )
     save_project_state(project_name, refreshed_state)
 
+    # write selections.json immediately after download
+    update_config_from_project_state(project_name, refreshed_state)
+    write_selections_from_project_state(project_name, refreshed_state)
+
     return {"ok": True, "clips": refreshed_state["clips"], "message": message}
 
 
@@ -380,7 +396,7 @@ def load_clips_from_urls(project_name: str):
     return {"ok": True, "clips": clips}
 
 
-@app.post("/api/projects/{project_name}/clips/move/{index}/{direction}")
+@app.post("/api/projects/{project_name}/clips/{index}/move/{direction}")
 def move_clip_route(project_name: str, index: int, direction: str):
     if direction not in {"up", "down"}:
         return JSONResponse({"ok": False, "error": "invalid direction"}, status_code=400)
@@ -390,7 +406,7 @@ def move_clip_route(project_name: str, index: int, direction: str):
     return {"ok": ok, "clips": state.get("clips", [])}
 
 
-@app.post("/api/projects/{project_name}/clips/delete/{index}")
+@app.post("/api/projects/{project_name}/clips/{index}/delete")
 def delete_clip_route(project_name: str, index: int):
     ok = delete_clip(project_name, index)
     state = load_project_state(project_name)

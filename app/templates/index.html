@@ -406,30 +406,29 @@
     function getPreviewOverlayLayout() {
       const clip = getSelectedClip();
       const titleBlocks = Array.isArray(state.title_blocks) ? state.title_blocks : [];
-
       const topRow = titleBlocks.slice(0, 2);
       const bottomRow = titleBlocks.slice(2);
 
+      // compute rank from position, same as composer.py
+      const total = state.clips.length;
+      const rankNum = clip ? (total - state.selectedPreviewIndex) : 1;
+      const rankDisplay = (clip && clip.rank_text && clip.rank_text.trim())
+        ? clip.rank_text.trim()
+        : `${rankNum}.`;
+
       return {
         canvas: { width: 1080, height: 1920 },
-        title: {
-          topRow,
-          bottomRow,
-          centerX: 540,
-          topY: 40,
-          rowGap: 10,
-          wordGap: 20
-        },
+        title: { topRow, bottomRow, centerX: 540, topY: 40, rowGap: 10, wordGap: 20 },
         rank: {
-          text: clip?.rank_text || "1.",
+          text: rankDisplay,
           fontSize: parseInt(clip?.rank_font_size ?? 110, 10),
           color: clip?.rank_color || "#ffe600",
           strokeColor: clip?.rank_stroke_color || "#000000",
           strokeWidth: parseInt(clip?.rank_stroke_width ?? 2, 10),
           x: 70,
           y: 290,
-          fontFamily: "Impact, Arial Black, sans-serif"
-        }
+          fontFamily: "Impact, Arial Black, sans-serif",
+        },
       };
     }
 
@@ -774,43 +773,54 @@
 
     function renderClips() {
       els.clipsContainer.innerHTML = "";
-
       if (!state.clips || state.clips.length === 0) {
         els.noClipsText.style.display = "block";
         return;
       }
-
       els.noClipsText.style.display = "none";
 
-      state.clips.forEach((clip, index) => {
-        const item = document.createElement("div");
-        item.className = "list-card" + (index === state.selectedPreviewIndex ? " active" : "");
-        item.style.cursor = "pointer";
+      const total = state.clips.length;
 
-        item.onclick = () => {
-          readStateFromInputs();
+      state.clips.forEach((clip, index) => {
+        const rankNum = total - index;
+        const isSelected = index === state.selectedPreviewIndex;
+
+        const box = document.createElement("div");
+        box.className = "rank-slot" + (isSelected ? " active" : "");
+        box.onclick = () => {
           state.selectedPreviewIndex = index;
           renderClips();
           syncSelectedClipInputs();
           renderPreview();
         };
 
-        const left = document.createElement("div");
-        left.className = "list-main";
-        left.innerHTML = `
-          <div class="list-title">${clip.name}</div>
-          <div class="list-meta">${clip.url || ""}</div>
-          <div class="list-meta">Rank text: ${clip.rank_text || ""}</div>
-          <div class="list-meta">Intro: ${clip.intro_text ? clip.intro_text : "None"}</div>
-          <div class="list-meta">Duck audio: ${(clip.duck_original_audio ?? true) ? "Yes" : "No"}</div>
+        // rank badge
+        const badge = document.createElement("div");
+        badge.className = "rank-badge";
+        badge.textContent = `#${rankNum}`;
+
+        // clip info
+        const info = document.createElement("div");
+        info.className = "rank-slot-info";
+        const rawRankText = (clip.rank_text || "").trim();
+        const isNumericRankText = /^\d+\.$/.test(rawRankText);
+        const customRankText = rawRankText && !isNumericRankText ? rawRankText : "";
+
+        info.innerHTML = `
+          <div class="list-title">${clip.name || "Clip " + (index + 1)}</div>
+          <div class="list-meta" style="font-size:11px;opacity:0.55;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px">${clip.url || ""}</div>
+          <div class="list-meta">Rank: <b>#${rankNum}</b>${customRankText ? ' &nbsp;<span style="opacity:0.5">(custom: ' + customRankText + ')</span>' : ""} &nbsp;|&nbsp; Duck: ${clip.duck_original_audio !== false ? "Yes" : "No"}</div>
         `;
 
-        const right = document.createElement("div");
-        right.className = "list-actions";
+        // controls
+        const controls = document.createElement("div");
+        controls.className = "rank-slot-controls";
 
         const upBtn = document.createElement("button");
         upBtn.className = "btn small";
         upBtn.textContent = "↑";
+        upBtn.title = "Move up (higher rank)";
+        upBtn.disabled = index === 0;
         upBtn.onclick = async (e) => {
           e.stopPropagation();
           await moveClip(index, "up");
@@ -819,6 +829,8 @@
         const downBtn = document.createElement("button");
         downBtn.className = "btn small";
         downBtn.textContent = "↓";
+        downBtn.title = "Move down (lower rank)";
+        downBtn.disabled = index === total - 1;
         downBtn.onclick = async (e) => {
           e.stopPropagation();
           await moveClip(index, "down");
@@ -832,13 +844,14 @@
           await deleteClip(index);
         };
 
-        right.appendChild(upBtn);
-        right.appendChild(downBtn);
-        right.appendChild(deleteBtn);
+        controls.appendChild(upBtn);
+        controls.appendChild(downBtn);
+        controls.appendChild(deleteBtn);
 
-        item.appendChild(left);
-        item.appendChild(right);
-        els.clipsContainer.appendChild(item);
+        box.appendChild(badge);
+        box.appendChild(info);
+        box.appendChild(controls);
+        els.clipsContainer.appendChild(box);
       });
     }
 
@@ -933,17 +946,26 @@
       const clip = getSelectedClip();
 
       if (!clip) {
-        els.previewRank.textContent = "1.";
-        els.previewRank.style.fontSize = "58px";
-        els.previewRank.style.color = "#ffe600";
-        els.previewRank.style.webkitTextStroke = "2px #000000";
+        const layout = getPreviewOverlayLayout();
+        els.previewRank.textContent = layout.rank.text;
+        els.previewRank.style.fontSize = layout.rank.fontSize + "px";
+        els.previewRank.style.color = layout.rank.color;
+        els.previewRank.style.webkitTextStroke = layout.rank.strokeWidth + "px " + layout.rank.strokeColor;
         els.previewPlayer.removeAttribute("src");
         els.previewPlayer.load();
         scheduleOverlaySave();
         return;
       }
 
-      els.previewRank.textContent = clip.rank_text || "1.";
+      const total = state.clips.length;
+      const rankNum = total - state.selectedPreviewIndex;
+      const rawRankText = (clip.rank_text || "").trim();
+      const isNumericRankText = /^\d+\.$/.test(rawRankText);
+      const rankDisplay = rawRankText && !isNumericRankText
+        ? rawRankText
+        : `${rankNum}.`;
+
+      els.previewRank.textContent = rankDisplay;
       els.previewRank.style.fontSize = `${clip.rank_font_size ?? 58}px`;
       els.previewRank.style.color = clip.rank_color || "#ffe600";
       els.previewRank.style.webkitTextStroke = `${clip.rank_stroke_width ?? 2}px ${clip.rank_stroke_color || "#000000"}`;
@@ -1152,43 +1174,37 @@
 
     async function moveClip(index, direction) {
       if (!state.currentProjectName) return;
-
       const encoded = encodeURIComponent(state.currentProjectName);
-      const res = await fetch(`/api/projects/${encoded}/clips/move/${index}/${direction}`, {
-        method: "POST"
-      });
-
+      const res = await fetch(`/api/projects/${encoded}/clips/${index}/move/${direction}`, { method: "POST" });
       const data = await res.json();
       if (data.ok) {
-        state.clips = data.clips || [];
-        if (state.selectedPreviewIndex >= state.clips.length) {
-          state.selectedPreviewIndex = 0;
-        }
+        const movedToIndex = direction === "up" ? index - 1 : index + 1;
+        state.clips = data.clips;
+        state.selectedPreviewIndex = movedToIndex;  // preview follows the moved clip
+        if (state.selectedPreviewIndex >= state.clips.length) state.selectedPreviewIndex = 0;
         renderClips();
         syncSelectedClipInputs();
         renderPreview();
         setStatus("Clip order updated", "success");
+      } else {
+        setStatus(data.error || "Move failed", "error");
       }
     }
 
     async function deleteClip(index) {
       if (!state.currentProjectName) return;
-
       const encoded = encodeURIComponent(state.currentProjectName);
-      const res = await fetch(`/api/projects/${encoded}/clips/delete/${index}`, {
-        method: "POST"
-      });
-
+      const res = await fetch(`/api/projects/${encoded}/clips/${index}/delete`, { method: "POST" });
       const data = await res.json();
       if (data.ok) {
-        state.clips = data.clips || [];
-        if (state.selectedPreviewIndex >= state.clips.length) {
-          state.selectedPreviewIndex = 0;
-        }
+        state.clips = data.clips;
+        if (state.selectedPreviewIndex >= state.clips.length) state.selectedPreviewIndex = 0;
         renderClips();
         syncSelectedClipInputs();
         renderPreview();
         setStatus("Clip deleted", "success");
+      } else {
+        setStatus(data.error || "Delete failed", "error");
       }
     }
 

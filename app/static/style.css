@@ -497,6 +497,53 @@ input[type="number"] {
   border: 0;
 }
 
+.rank-slot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--panel, #11141b);
+  border: 1.5px solid rgba(255,255,255,0.07);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.rank-slot:hover {
+  border-color: rgba(255,255,255,0.18);
+}
+.rank-slot.active {
+  border-color: var(--primary, #7c6af7);
+  background: rgba(124,106,247,0.08);
+}
+.rank-badge {
+  min-width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 800;
+  color: #ffe600;
+  flex-shrink: 0;
+  letter-spacing: -0.5px;
+}
+.rank-slot.active .rank-badge {
+  background: var(--primary, #7c6af7);
+  color: #fff;
+}
+.rank-slot-info {
+  flex: 1;
+  min-width: 0;
+}
+.rank-slot-controls {
+  display: flex;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
 @keyframes status-pulse {
   0% {
     transform: scale(0.9);

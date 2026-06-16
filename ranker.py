@@ -2,7 +2,8 @@ import json
 import os
 import subprocess
 
-SELECTIONS_PATH = "selections.json"
+
+DEFAULT_SELECTIONS_PATH = "selections.json"
 
 
 def get_video_info(filepath: str, ffprobe_path: str | None = None) -> dict:
@@ -42,7 +43,11 @@ def list_clips(input_dir: str) -> list:
     return [os.path.join(input_dir, f) for f in files]
 
 
-def run_ranker(input_dir: str, ffprobe_path: str | None = None) -> list:
+def run_ranker(
+    input_dir: str,
+    ffprobe_path: str | None = None,
+    selections_path: str = DEFAULT_SELECTIONS_PATH
+) -> list:
     """
     Show all clips with metadata, let user pick and order them.
     Returns ordered list of selected clip dicts.
@@ -99,23 +104,26 @@ def run_ranker(input_dir: str, ffprobe_path: str | None = None) -> list:
         for path in ordered_paths
     ]
 
-    save_selections(selected_clips)
+    save_selections(selected_clips, selections_path=selections_path)
     return selected_clips
 
 
-def save_selections(selected_clips: list) -> None:
+def save_selections(selected_clips: list, selections_path: str = DEFAULT_SELECTIONS_PATH) -> None:
     data = {"selected_clips": selected_clips}
-    with open(SELECTIONS_PATH, "w", encoding="utf-8") as f:
+    os.makedirs(os.path.dirname(os.path.abspath(selections_path)), exist_ok=True)
+
+    with open(selections_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
-    print(f"\n[OK] Selection saved to {SELECTIONS_PATH}")
+
+    print(f"\n[OK] Selection saved to {selections_path}")
 
 
-def load_selections() -> list:
-    if not os.path.exists(SELECTIONS_PATH):
-        print(f"[ERROR] {SELECTIONS_PATH} not found. Run the ranker first.")
+def load_selections(selections_path: str = DEFAULT_SELECTIONS_PATH) -> list:
+    if not os.path.exists(selections_path):
+        print(f"[ERROR] {selections_path} not found. Run the ranker first.")
         return []
 
-    with open(SELECTIONS_PATH, "r", encoding="utf-8") as f:
+    with open(selections_path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
     selected_clips = data.get("selected_clips", [])
@@ -138,6 +146,11 @@ def load_selections() -> list:
                 "intro_text": item.get("intro_text", ""),
                 "intro_tts_path": item.get("intro_tts_path", ""),
                 "duck_original_audio": item.get("duck_original_audio", True),
+                "rank_text": item.get("rank_text", ""),
+                "rank_color": item.get("rank_color", "#ffe600"),
+                "rank_stroke_color": item.get("rank_stroke_color", "#000000"),
+                "rank_stroke_width": item.get("rank_stroke_width", 2),
+                "rank_font_size": item.get("rank_font_size", 58),
             })
 
     return normalized
