@@ -406,8 +406,14 @@
     function getPreviewOverlayLayout() {
       const clip = getSelectedClip();
       const titleBlocks = Array.isArray(state.title_blocks) ? state.title_blocks : [];
-      const topRow = titleBlocks.slice(0, 2);
-      const bottomRow = titleBlocks.slice(2);
+      const topRow = titleBlocks.filter((block, index) => {
+        const row = parseInt(block.row ?? (index < 2 ? 1 : 2), 10);
+        return row === 1;
+      });
+      const bottomRow = titleBlocks.filter((block, index) => {
+        const row = parseInt(block.row ?? (index < 2 ? 1 : 2), 10);
+        return row === 2;
+      });
 
       // compute rank from position, same as composer.py
       const total = state.clips.length;
@@ -524,6 +530,7 @@
       const words = raw.split(/\s+/).filter(Boolean);
       return words.map((word, index) => ({
         text: word,
+        row: index < 2 ? 1 : 2,
         font_family: FONT_OPTIONS[0],
         font_size: 120,
         color: index === 1 ? "#ff2b2b" : index === 2 ? "#ffe600" : "#ffffff",
@@ -707,7 +714,21 @@
           state.title_blocks[index].font_size = parseInt(e.target.value || "40", 10);
           renderPreview();
         };
-
+        const rowSelect = document.createElement("select");
+        [1, 2].forEach((rowNum) => {
+          const option = document.createElement("option");
+          option.value = String(rowNum);
+          option.textContent = `Row ${rowNum}`;
+          if (String(block.row ?? (index < 2 ? 1 : 2)) === String(rowNum)) {
+            option.selected = true;
+          }
+          rowSelect.appendChild(option);
+        });
+        rowSelect.onchange = (e) => {
+          state.title_blocks[index].row = parseInt(e.target.value, 10);
+          renderPreview();
+        };
+          
         const colorInput = document.createElement("input");
         colorInput.type = "color";
         colorInput.value = block.color || "#ffffff";
@@ -757,12 +778,18 @@
 
         const grid2 = document.createElement("div");
         grid2.className = "control-grid-2";
-        grid2.appendChild(makeLabeled("Color", colorInput));
-        grid2.appendChild(makeLabeled("Stroke Color", strokeColorInput));
+        grid2.appendChild(makeLabeled("Row", rowSelect));
+        grid2.appendChild(makeLabeled("Stroke Width", strokeWidthInput));
 
+        const grid3 = document.createElement("div");
+        grid3.className = "control-grid-2";
+        grid3.appendChild(makeLabeled("Color", colorInput));
+        grid3.appendChild(makeLabeled("Stroke Color", strokeColorInput));
+
+        form.appendChild(makeLabeled("Text", textInput));
         form.appendChild(grid1);
         form.appendChild(grid2);
-        form.appendChild(makeLabeled("Stroke Width", strokeWidthInput));
+        form.appendChild(grid3);
         form.appendChild(removeBtn);
 
         item.appendChild(title);
@@ -1058,7 +1085,10 @@
       const data = await res.json();
 
       state.currentProjectName = data.state.project_name;
-      state.title_blocks = data.state.title_blocks || [];
+      state.title_blocks = (data.state.title_blocks || []).map((block, index) => ({
+        ...block,
+        row: parseInt(block.row ?? (index < 2 ? 1 : 2), 10)
+      }));
       state.background_color = data.state.background_color || "#000000";
       state.urls = data.state.urls || [];
       state.clips = data.state.clips || [];
@@ -1115,15 +1145,18 @@
       });
 
       const data = await res.json();
-      if (data.ok) {
-        state.title_blocks = data.state.title_blocks || [];
-        state.background_color = data.state.background_color || "#000000";
-        state.urls = data.state.urls || [];
-        state.clips = data.state.clips || [];
-        syncInputsFromState();
-        await saveOverlayImageToProject();
-        setStatus("Saved");
-      }
+        if (data.ok) {
+          state.title_blocks = (data.state.title_blocks || state.title_blocks).map((block, index) => ({
+            ...block,
+            row: parseInt(block.row ?? state.title_blocks[index]?.row ?? (index < 2 ? 1 : 2), 10)
+          }));
+          state.background_color = data.state.background_color || "#000000";
+          state.urls = data.state.urls || [];
+          state.clips = data.state.clips || [];
+          syncInputsFromState();
+          await saveOverlayImageToProject();
+          setStatus("Saved");
+        }
     }
 
     async function downloadClips() {
@@ -1396,6 +1429,7 @@
     function addTitleBlock() {
       state.title_blocks.push({
         text: "New Word",
+        row: 2,
         font_family: FONT_OPTIONS[0],
         font_size: 120,
         color: "#ffffff",
